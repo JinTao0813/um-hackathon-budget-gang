@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bitcoin Sentiment Analysis</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    body { 
+      background-color: #f8f9fa; 
+      font-family: 'Roboto', sans-serif;
+      color: #343a40;
+    }
+    .container { 
+      max-width: 900px; 
+      margin-top: 50px; 
+      margin-bottom: 50px;
+    }
+    .form-container { 
+      background-color: white; 
+      padding: 40px; 
+      border-radius: 15px; 
+      box-shadow: 0 10px 30px rgba(0, 97, 255, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+    .form-container::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 8px;
+      background: linear-gradient(135deg, #0061ff 0%, #60efff 100%);
+    }
+    .form-title { 
+      margin-bottom: 40px; 
+      text-align: center; 
+      color: #0061ff;
+      font-weight: 700;
+      font-size: 2.5rem;
+      position: relative;
+    }
+    .form-title::after {
+      content: "";
+      position: absolute;
+      bottom: -15px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 4px;
+      background: linear-gradient(90deg, #0061ff, #60efff);
+      border-radius: 2px;
+    }
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 1.2rem;
+    }
+    .subtitle .team-name {
+      font-weight: 700;
+      color: #0061ff;
+    }
+    .form-label {
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: #495057;
+    }
+    .form-control {
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      padding: 12px;
+      transition: all 0.3s ease;
+    }
+    .form-control:focus {
+      border-color: #0061ff;
+      box-shadow: 0 0 0 0.25rem rgba(0, 97, 255, 0.15);
+    }
+    .form-check {
+      margin-bottom: 10px;
+    }
+    .form-check-input {
+      margin-top: 0.3em;
+    }
+    .form-check-input:checked {
+      background-color: #0061ff;
+      border-color: #0061ff;
+    }
+    .form-text {
+      font-size: 0.85rem;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #0061ff 0%, #60efff 100%);
+      border: none;
+      padding: 14px 25px;
+      border-radius: 8px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      margin-top: 10px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(0, 97, 255, 0.2);
+    }
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #004ed6 0%, #4db9ff 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 97, 255, 0.3);
+    }
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin: 30px 0 20px;
+      color: #0061ff;
+      display: flex;
+      align-items: center;
+    }
+    .section-title i {
+      margin-right: 10px;
+    }
+    .source-card {
+      background-color: #f8f9fa;
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 15px;
+      transition: all 0.3s ease;
+    }
+    .source-card:hover {
+      background-color: #e9f2ff;
+      transform: translateY(-3px);
+    }
+    /* Footer */
+    .footer {
+      background: linear-gradient(135deg, #303846 0%, #121420 100%);
+      color: white;
+      padding: 30px 0;
+      text-align: center;
+      margin-top: 30px;
+      border-radius: 15px;
+    }
+    .footer p {
+      margin-bottom: 0;
+    }
+    .footer .team-name {
+      font-weight: 700;
+      color: #60efff;
+    }
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #0061ff 0%, #60efff 100%);
+      color: white;
+      padding: 30px;
+      border-radius: 15px;
+      margin-bottom: 30px;
+      box-shadow: 0 10px 25px rgba(0, 97, 255, 0.1);
+      position: relative;
+      overflow: hidden;
+      text-align: center;
+    }
+    .header::before {
+      content: "";
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: repeating-linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0.05),
+        rgba(255, 255, 255, 0.05) 20px,
+        rgba(255, 255, 255, 0) 20px,
+        rgba(255, 255, 255, 0) 40px
+      );
+      animation: move-bg 30s linear infinite;
+      z-index: 0;
+    }
+    @keyframes move-bg {
+      0% {
+        transform: rotate(0) translate(-50px, -50px);
+      }
+      100% {
+        transform: rotate(360deg) translate(-50px, -50px);
+      }
+    }
+    .header h1 {
+      font-weight: 700;
+      margin: 0;
+      position: relative;
+      z-index: 1;
+      font-size: 2.5rem;
+    }
+    .header .subtitle {
+      font-weight: 400;
+      margin-top: 10px;
+      font-size: 1.2rem;
+      opacity: 0.9;
+      position: relative;
+      z-index: 1;
+      color: white;
+    }
+    @media (max-width: 768px) {
+      .form-title {
+        font-size: 2rem;
+      }
+      .form-container {
+        padding: 30px;
+      }
+      .header h1 {
+        font-size: 2rem;
+      }
+      .header .subtitle {
+        font-size: 1rem;
+      }
+    }
+    /* Fixed Button */
+    .fixed-bottom-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1000;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #0061ff 0%, #60efff 100%);
+      color: white;
+      transition: all 0.3s ease;
+    }
+    .fixed-bottom-btn:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    }
+    .fixed-bottom-btn i {
+      font-size: 1.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <h1>Bitcoin Sentiment Analysis</h1>
+      <div class="subtitle">Powered by Budget Gang - UM Hackathon</div>
+    </div>
+    
+    <div class="form-container">
+      <form action="/analyze" method="post">
+        <div class="section-title">
+          <i class="fas fa-calendar-alt"></i>Time Range
+        </div>
+        <div class="row mb-4">
+          <div class="col-md-6 mb-3">
+            <label for="start_date" class="form-label">Start Date</label>
+            <input type="date" class="form-control" id="start_date" name="start_date" required>
+          </div>
+          
+          <div class="col-md-6 mb-3">
+            <label for="end_date" class="form-label">End Date</label>
+            <input type="date" class="form-control" id="end_date" name="end_date" required>
+          </div>
+        </div>
+        
+        <div class="section-title">
+          <i class="fas fa-database"></i>Data Sources
+        </div>
+        
+        <div class="mb-4">
+          <div class="source-card">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="datasources" value="rss" id="rss" checked>
+              <label class="form-check-label fw-bold" for="rss">
+                <i class="fas fa-rss text-warning me-2"></i>RSS Feeds
+              </label>
+              <small class="form-text text-muted d-block">Gets the latest articles only (date filter not applicable)</small>
+              
+              <div id="rss_sources_container" class="ms-4 mt-3">
+                <label class="form-label">Select RSS Sources:</label>
+                <div class="row">
+                  {% for key, url in rss_sources.items() %}
+                  <div class="col-md-6">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" name="rss_sources" value="{{ key }}" id="rss_{{ key }}" {% if key == 'cointelegraph' %}checked{% endif %}>
+                      <label class="form-check-label" for="rss_{{ key }}">
+                        {{ key|capitalize }}
+                      </label>
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="source-card">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="datasources" value="newsapi" id="newsapi">
+              <label class="form-check-label fw-bold" for="newsapi">
+                <i class="fas fa-newspaper text-primary me-2"></i>News API
+              </label>
+              <small class="form-text text-muted d-block">Limited to maximum 5 days range (will use last 5 days if larger range selected)</small>
+            </div>
+          </div>
+          
+          <div class="source-card">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="datasources" value="other" id="other">
+              <label class="form-check-label fw-bold" for="other">
+                <i class="fas fa-link text-success me-2"></i>Custom RSS Feed
+              </label>
+            </div>
+            
+            <div id="custom_url_container" class="mt-3" style="display: none;">
+              <label for="custom_url" class="form-label">Custom RSS Feed URL</label>
+              <input type="url" class="form-control" id="custom_url" name="custom_url" placeholder="https://example.com/feed">
+            </div>
+          </div>
+
+          <div class="source-card">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="datasources" value="wikipedia" id="wikipedia">
+              <label class="form-check-label fw-bold" for="wikipedia">
+                <i class="fab fa-wikipedia-w text-dark me-2"></i>Wikipedia
+              </label>
+              <small class="form-text text-muted d-block">Get the latest Bitcoin information from Wikipedia</small>
+            </div>
+            
+            <div id="wikipedia_options_container" class="mt-3 ms-4" style="display: none;">
+              <div class="row">
+                <div class="col-md-12 mb-3">
+                  <label for="wikipedia_page" class="form-label">Wikipedia Page</label>
+                  <input type="text" class="form-control" id="wikipedia_page" name="wikipedia_page" value="Bitcoin" placeholder="Bitcoin">
+                  <small class="form-text text-muted">Default is "Bitcoin". You can specify other related pages.</small>
+                </div>
+                
+                <div class="col-md-12 mb-3">
+                  <label for="wikipedia_filters" class="form-label">Optional Filtering (keywords)</label>
+                  <input type="text" class="form-control" id="wikipedia_filters" name="wikipedia_filters" placeholder="e.g. history, economics, mining">
+                  <small class="form-text text-muted">Enter keywords to filter content (comma separated)</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <button type="submit" class="btn btn-primary w-100">
+          <i class="fas fa-chart-line me-2"></i>Analyze Sentiment
+        </button>
+      </form>
+    </div>
+    
+    <!-- Footer -->
+    <div class="footer">
+      <div class="container">
+        <p>© 2023 <span class="team-name">Budget Gang</span> - UM Hackathon Project</p>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Fixed Button -->
+  <div class="fixed-bottom-btn">
+    <a href="/" class="text-white" title="Back to Home"><i class="fas fa-home"></i></a>
+  </div>
+  
+  <!-- Bootstrap JS and dependencies -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Show/hide custom URL input based on checkbox
+    document.getElementById('other').addEventListener('change', function() {
+      document.getElementById('custom_url_container').style.display = 
+        this.checked ? 'block' : 'none';
+    });
+    
+    // Show/hide RSS sources based on RSS checkbox
+    document.getElementById('rss').addEventListener('change', function() {
+      document.getElementById('rss_sources_container').style.display = 
+        this.checked ? 'block' : 'none';
+    });
+
+    // Show/hide Wikipedia options based on Wikipedia checkbox
+    document.getElementById('wikipedia').addEventListener('change', function() {
+      document.getElementById('wikipedia_options_container').style.display = 
+        this.checked ? 'block' : 'none';
+    });
+    
+    // Set default dates
+    const today = new Date();
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+    
+    document.getElementById('start_date').value = oneMonthAgo.toISOString().split('T')[0];
+    document.getElementById('end_date').value = today.toISOString().split('T')[0];
+  </script>
+</body>
+</html>
