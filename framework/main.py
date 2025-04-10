@@ -1,5 +1,6 @@
 import Backtest
-import DataFetcher
+from MarketDataFetcher import MarketDataFetcher
+from OnChainMetricsFetcher import OnChainMetricsFetcher
 import pandas as pd
 import numpy as np
 from datetime import datetime
@@ -17,14 +18,14 @@ if __name__ == "__main__":
     start_time = int(datetime(2018, 1, 1).timestamp() * 1000)
     end_time = int(datetime(2020, 12, 31, 23, 59).timestamp() * 1000)
     
-    fetcher = DataFetcher(API_KEY, BASE_URL, SYMBOL, INTERVAL, LIMIT)
+    fetcher = MarketDataFetcher(API_KEY, BASE_URL, SYMBOL, INTERVAL, LIMIT)
     df = fetcher.fetch(start_time, end_time)
     df.save_to_csv(df, start_time, end_time)
 
     data = pd.read_csv('../datasets/BTCUSDT_backtest_features.csv')
 
     # Training the model
-    hmm = Backtest.HMMStrategy (data)
+    hmm = Backtest.HMMStrategy (filepath='../datasets/BTCUSDT_backtest_features.csv', model_path='../models/hmm.pkl')
     nlp = Backtest.NLPStrategy (data)
 
     # Combining strategies
