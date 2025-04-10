@@ -4,7 +4,7 @@ import time
 import os
 from datetime import datetime
 
-class DataFetcher:
+class MarketDataFetcher:
     def __init__(self, api_key, base_url, symbol, interval, limit=1000):
         self.api_key = api_key
         self.base_url = base_url
@@ -46,7 +46,7 @@ class DataFetcher:
                     }
                     self.data.append(formatted_candle)
 
-                print(f"✅ Retrieved {len(data)} candles. Total: {len(all_candles)}")
+                print(f"✅ Retrieved {len(data)} candles. Total: {len(data)}")
                 start_time = data[-1]["start_time"] + 60 * 60 * 1000  # 1 hour increment
                 time.sleep(0.5)
             else:

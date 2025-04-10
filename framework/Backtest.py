@@ -1,5 +1,9 @@
 import numpy as np
 import pandas as pd
+import HMMUtils
+from hmmlearn.hmm import GaussianHMM
+from sklearn.preprocessing import StandardScaler
+import joblib
 
 class Strategy:
     def __init__(self, data):
@@ -131,7 +135,41 @@ class Backtesting:
 
 
 class HMMStrategy(Strategy):
-    print("HMM strategy initialized")
+    def __init__(self, filepath, model_path='../models/hmm.pkl'):
+        self.filepath = filepath
+        self.model_path = model_path
+        self.model = None
+        self.df = None
+        self.market_state_labels = {}
+
+    def train(self):
+        df = HMMUtils.load_and_preprocess_data(self.filepath)
+        
+        features_to_normalize = [
+            'volume', 'rsi', 'macd', 'ema_12', 'ema_26', 'sma_20', 'volatility',
+            'ohlc_mean', 'price_range', 'candle_body', 'direction',
+            'rolling_volatility', 'volume_ema', 'volume_spike',
+            'bollinger_upper', 'bollinger_lower', 'bollinger_width'
+        ]
+        df = HMMUtils.normalize_features(df, features_to_normalize)
+        
+        observation_columns = ['log_return'] + [f"{feat}_norm" for feat in features_to_normalize]
+        observations = HMMUtils.extract_observations(df, observation_columns)
+        
+        self.model = HMMUtils.train_hmm_model(observations)
+        df = HMMUtils.assign_states(df, self.model, observation_columns)
+        
+        df, state_labels = HMMUtils.label_market_states(df)
+        
+        self.df = df
+        self.market_state_labels = state_labels
+        
+        print("Converged:", self.model.monitor_.converged)
+        print("Final log likelihood:", self.model.monitor_.history[-1])
+        print("State Labels:", self.market_state_labels)
+        print(df[['timestamp', 'open', 'close', 'log_return', 'state', 'market_state']])
+        
+        HMMUtils.save_model(self.model, self.model_path)
 
 class NLPStrategy(Strategy):
     print("NLP strategy initialized")
