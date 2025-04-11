@@ -1,4 +1,6 @@
 from .base import Strategy
 
 class NLPStrategy(Strategy):
-    print("NLP strategy initialized")
+    '''
+    NLP Strategy that uses Natural Language Processing to analyze news sentiment and make trading decisions.
+    '''

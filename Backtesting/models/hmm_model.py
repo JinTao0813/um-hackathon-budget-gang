@@ -16,6 +16,12 @@ class HMM():
         self.market_state_labels = {}
         self.stats = None
         self.initialize_metrics()
+        self.features = ['log_return',
+            'volume', 'rsi', 'macd', 'ema_12', 'ema_26', 'sma_20', 'volatility',
+            'ohlc_mean', 'price_range', 'candle_body', 'direction',
+            'rolling_volatility', 'volume_ema', 'volume_spike',
+            'bollinger_upper', 'bollinger_lower', 'bollinger_width'
+        ]
 
     def preprocess_data(self, df):
         df['timestamp'] = pd.to_datetime(df['timestamp'])
@@ -55,11 +61,10 @@ class HMM():
         normalizer = SelfNormalizer(self.df)
         normalized_features = normalizer.normalize(features_to_normalize)
     
-        observation_columns = ['log_return'] + features_to_normalize
-        observations = self.extract_observations(normalized_features, observation_columns)
+        observations = self.extract_observations(normalized_features, self.features)
         
         self.model = self.train_hmm_model(observations)
-        df = self.assign_states(self.df, self.model, observation_columns)
+        df = self.assign_states(self.df, self.model, self.features)
         
         df, state_labels = self.identify_market_states(df)
         
@@ -143,3 +148,20 @@ class HMM():
         market_state_today = self.market_state_labels[state_today[0]]
 
         return market_state_today
+
+    def predict_probabilities(self, df, i):
+        posterior_probs = self.model.predict_proba(df[self.features].values  )
+        
+        # Get the probabilities for time step i
+        if i < len(posterior_probs):
+            probs = posterior_probs[i]
+        else:
+            probs = posterior_probs[-1]
+
+        # Map state index to labels
+        return {
+            self.market_state_labels.get(idx, f'state_{idx}'): prob
+            for idx, prob in enumerate(probs)
+        }
+    
+    

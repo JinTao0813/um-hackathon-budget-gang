@@ -1,8 +1,12 @@
+from .strategies.base import Strategy
 import pandas as pd
 import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+
 
 class Backtest:
-    def __init__(self, data_filepath, strategy, initial_cash, max_holding_period, trading_fees):
+    def __init__(self, data_filepath, strategy: Strategy, initial_cash, max_holding_period, trading_fees):
         self.data = pd.read_csv(data_filepath)
         self.strategy = strategy
         self.initial_cash = initial_cash
@@ -19,61 +23,49 @@ class Backtest:
         self.max_holding_period = max_holding_period
 
     def run(self):
-        self.strategy.generate_signals() 
+        self.strategy.set_predict_df(self.data)
+        self.data = self.strategy.generate_signals()
         self.signals = self.strategy.signals
-        for i in range(len(self.signals)):
+        equity = self.initial_cash
+        print(len(self.strategy.signals))
+        print(len(self.data))
+        for i in range(len(self.strategy.signals)):
             today_data = self.data.iloc[i]
-            price_change = 0
-            pnl = 0
-            trade = 0
-            equity = 0
-            drawdown = 0
             date = today_data.get('timestamp', None)
+            price = today_data['close']
 
+            trade = 0
+            pnl = 0
+            drawdown = 0
 
-            if i > 0: # Not the first row of data
-                ytd_data = self.data.iloc[i-1]
-                price_change = (today_data['close'] - ytd_data['close']) / ytd_data['close']
+            prev_position = self.position
 
-                signal = self.signals[i] if i<len(self.signals) else None
-                print(f"Signal: {signal}")
-                price = today_data['close']
-                # BUY action
-                if signal == 'bullish' and self.cash > (price * self.trading_fees) and self.position == 0: # Buy if buy signal occurs && we have cash && we don't have a position
-                    self.position = self.cash // (price * (1 + self.trading_fees)) # Calculate the number of shares we can buy
-                    cost = self.position * price * (1 + self.trading_fees)
-                    self.cash -= cost
-                    self.entry_price = price
-                    self.entry_index = i
-                    trade = 1
+            # Strategy decides what to do
+            self.cash, self.position, self.entry_price, self.entry_index, self.holding_period, action = self.strategy.execute_trade(
+                i, today_data, self.cash, self.position, self.entry_price, self.entry_index, self.holding_period, self.trading_fees, self.max_holding_period
+            )
 
-                # SELL action
-                elif self.signals[i] == 'bearish' or self.holding_period == self.max_holding_period: # Sell if sell signal occurs && we have a position
-                    print(f"Sell signal at index {i}")
-                    if self.entry_index is not None:
-                        sell_order = self.position * price * (1 - self.trading_fees)
-                        self.cash += sell_order
-                        trade = 1
-                        self.position = 0
-                        self.entry_price = 0
-                        self.entry_index = None
-                        self.holding_period = 0
-                else:
-                    self.holding_period += 1
-        
-                pnl = price_change * self.trade_logs[i-1]['position'] - trade * self.trading_fees
-                equity = self.trade_logs[i-1]['equity'] + pnl
-                self.equity_curve.append(equity)
-                self.portfolio_values.append(equity)
-                drawdown = equity - max(self.equity_curve)
+            if action in ['buy', 'sell']:
+                trade = 1
 
-            print(f"Price change: {price_change}")
-                
-            # Append all fields to rows
+            # Calculate PnL
+            if i > 0:
+                prev_data = self.data.iloc[i - 1]
+                price_change = (price - prev_data['close']) / prev_data['close']
+                prev_equity = self.equity_curve[-1] if self.equity_curve else self.initial_cash
+                pnl = price_change * prev_position
+                equity = prev_equity + pnl
+            else:
+                equity = self.initial_cash
+
+            self.equity_curve.append(equity)
+            self.portfolio_values.append(equity)
+            drawdown = equity - max(self.equity_curve)
+
             self.trade_logs.append({
                 'datetime': date,
-                'close': today_data['close'],
-                'price_change': price_change,
+                'close': price,
+                'price_change': price_change if i > 0 else 0,
                 'position': self.position,
                 'trade': trade,
                 'pnl': pnl,
@@ -81,7 +73,6 @@ class Backtest:
                 'drawdown': drawdown
             })
 
-            print (f"Latest Trade logs: {self.trade_logs[-1]}")
 
     def get_performance_results(self):
         final_price = self.data['close'].iloc[-1]
@@ -131,3 +122,49 @@ class Backtest:
         df = pd.DataFrame(self.trade_logs)
         df.to_csv(filename, index=False)
         print(f"Trade logs saved to {filename}")
+
+    def run_backtest_heatmap(self, bullish_range=None, bearish_range=None, metric='Final Portfolio Value'):
+        if bullish_range is None:
+            bullish_range = np.linspace(0.4, 0.7, 7)
+        if bearish_range is None:
+            bearish_range = np.linspace(0.3, 0.6, 7)
+
+        results = []
+
+        for bull in bullish_range:
+            row = []
+            for bear in bearish_range:
+                # try:
+                print(f"Running with bullish={bull:.2f}, bearish={bear:.2f}")
+                # Set the thresholds for the strategy
+                self.strategy.set_thresholds(bullish_threshold=bull, bearish_threshold=bear)
+                # self.strategy.setThresholds(bullish_threshold=bull, bearish_threshold=bear)
+                # Create a new backtest instance with same settings but new strategy
+                self.run()
+                performance = self.get_performance_results()
+                row.append(performance.get(metric, np.nan))
+                # except Exception as e:
+                #     print(f"Failed for bull={bull:.2f}, bear={bear:.2f}: {e}")
+                #     row.append(np.nan)
+            results.append(row)
+
+        # Plot heatmap
+        heatmap_data = pd.DataFrame(results, index=np.round(bullish_range, 2), columns=np.round(bearish_range, 2))
+        plt.figure(figsize=(10, 8))
+        sns.heatmap(heatmap_data, annot=True, fmt=".1f", cmap="YlGnBu")
+        plt.title(f"{metric} Heatmap")
+        plt.xlabel("Bearish Threshold")
+        plt.ylabel("Bullish Threshold")
+        plt.show()
+
+    def set_data (self, filepath):
+        """
+        Set the data file path.
+        """
+        self.data = pd.read_csv(filepath)
+
+    def set_strategy(self, strategy):
+        """
+        Set the strategy.
+        """
+        self.strategy = strategy
