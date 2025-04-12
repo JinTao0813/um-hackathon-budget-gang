@@ -63,3 +63,34 @@ class ExtrernalNormalizer:
             'bollinger_lower_norm': self.normalize_from_df(today_df, 'bollinger_lower'),
             'bollinger_width_norm': self.normalize_from_df(today_df, 'bollinger_width'),
         }
+        
+    def get_sentiment_features(self, sentiment_data: dict) -> dict:
+        """
+        Get normalized sentiment features from sentiment data.
+        
+        Parameters:
+        -----------
+        sentiment_data : dict
+            Dictionary containing sentiment data for a specific date
+            
+        Returns:
+        --------
+        dict
+            Dictionary with normalized sentiment features
+        """
+        if not sentiment_data:
+            return {}
+            
+        # Initialize with original values
+        features = {
+            'sentiment_mean': sentiment_data.get('sentiment_mean', 0),
+            'sentiment_momentum': sentiment_data.get('sentiment_momentum', 0),
+            'positive_ratio': sentiment_data.get('positive_ratio', 0.5),
+            'negative_ratio': sentiment_data.get('negative_ratio', 0.5),
+        }
+        
+        # Calculate additional derived features
+        features['sentiment_signal_strength'] = abs(features['sentiment_mean']) * (1 + abs(features['sentiment_momentum']))
+        features['sentiment_confidence'] = 1 - min(features['positive_ratio'], features['negative_ratio'])
+        
+        return features
