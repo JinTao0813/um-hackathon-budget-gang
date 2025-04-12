@@ -15,7 +15,7 @@ import json
 # Import from our new models module
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from Backtesting.models.nlp_model import finbert, FINBERT_STATUS, clean_text, analyze_sentiment, calculate_trading_signals, generate_default_price_data, NUMPY_AVAILABLE
+from Backtesting.models.nlp import finbert, FINBERT_STATUS, clean_text, analyze_sentiment, calculate_trading_signals, generate_default_price_data, NUMPY_AVAILABLE
 
 # Explicitly check for NumPy before importing
 try:

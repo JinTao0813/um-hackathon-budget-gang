@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from ..models.ensemble_model import EnsembleModel
 
-class EnsembleStrategy(Strategy):
+class EnsembleSignalsStrategy(Strategy):
     '''
     Ensemble Strategy that combines multiple strategies to make trading decisions.'''
     

@@ -1,8 +1,8 @@
 from .base import Strategy
-from ..models.hmm_model import HMM
+from ..models.hmm import HMM
 import pandas as pd
 
-class HMMStrategy(Strategy):
+class MarketRegimeStrategy(Strategy):
     def __init__(self, training_dataset_filepath, predict_dataset_filepath, bullish_threshold, bearish_threshold):
         super().__init__(training_dataset_filepath, predict_dataset_filepath)
         self.holding_period = 0

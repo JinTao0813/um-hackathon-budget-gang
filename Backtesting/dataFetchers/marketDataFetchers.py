@@ -5,7 +5,7 @@ import time
 from datetime import datetime
 import pandas as pd
 
-class MarketDataFetcher(DataFetcher):
+class CoinbaseFetcher(DataFetcher):
     def __init__(self, api_key, base_url, symbol, limit=1000):
         super().__init__(api_key, base_url, limit)
         self.symbol = symbol

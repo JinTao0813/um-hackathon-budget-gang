@@ -6,7 +6,7 @@ from datetime import datetime
 import pandas as pd
 
 
-class OnChainMetricsFetcher(DataFetcher):
+class CryptoQuantFetcher(DataFetcher):
     def __init__(self, api_key, base_url, currency, endpoint_category, metric, exchange, limit=1000):
         super().__init__(api_key, base_url, limit)
         self.currency = currency.lower()
@@ -85,7 +85,7 @@ class OnChainMetricsFetcher(DataFetcher):
         print(f"💾 Saved to {csv_path} with {len(df)} rows.")
         print(df.tail())
 
-class OnChainMetricsFetcherWithoutExchange(DataFetcher):
+class CryptoQuantFetcherWithoutExchange(DataFetcher):
     def __init__(self, api_key, base_url, currency, endpoint_category, metric, limit=1000):
         super().__init__(api_key, base_url, limit)
         self.currency = currency.lower()
