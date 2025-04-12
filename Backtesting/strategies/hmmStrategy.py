@@ -16,7 +16,7 @@ class HMMStrategy(Strategy):
         print(len(self.predict_df))
         processed_df = self.hmmodel.preprocess_data(self.predict_df)
         
-        for i in range(len(processed_df) - 1):
+        for i in range(len(processed_df)):
             predicted_probs = self.hmmodel.predict_probabilities(processed_df, i)  
             prob_bullish = predicted_probs.get('bullish', 0)
             prob_bearish = predicted_probs.get('bearish', 0)

@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
 
 
 class Backtest:
@@ -23,14 +24,14 @@ class Backtest:
         self.max_holding_period = max_holding_period
 
     def run(self):
-        self.strategy.set_predict_df(self.data)
-        self.data = self.strategy.generate_signals()
+        self.reset()
+        df = self.data.copy()
+        df = self.strategy.set_predict_df(df)
+        df = self.strategy.generate_signals()
         self.signals = self.strategy.signals
         equity = self.initial_cash
-        print(len(self.strategy.signals))
-        print(len(self.data))
         for i in range(len(self.strategy.signals)):
-            today_data = self.data.iloc[i]
+            today_data = df.iloc[i]
             date = today_data.get('timestamp', None)
             price = today_data['close']
 
@@ -129,6 +130,8 @@ class Backtest:
         if bearish_range is None:
             bearish_range = np.linspace(0.3, 0.6, 7)
 
+        print("bullish range: ", bullish_range)
+        print("bearish range: ", bearish_range)
         results = []
 
         for bull in bullish_range:
@@ -138,20 +141,28 @@ class Backtest:
                 print(f"Running with bullish={bull:.2f}, bearish={bear:.2f}")
                 # Set the thresholds for the strategy
                 self.strategy.set_thresholds(bullish_threshold=bull, bearish_threshold=bear)
-                # self.strategy.setThresholds(bullish_threshold=bull, bearish_threshold=bear)
                 # Create a new backtest instance with same settings but new strategy
                 self.run()
                 performance = self.get_performance_results()
+                print(performance)
                 row.append(performance.get(metric, np.nan))
+                print(f"Result for bullish={bull:.2f}, bearish={bear:.2f}: {performance.get(metric, np.nan)}")
                 # except Exception as e:
                 #     print(f"Failed for bull={bull:.2f}, bear={bear:.2f}: {e}")
                 #     row.append(np.nan)
+
             results.append(row)
 
         # Plot heatmap
+        print(results)
+        max_value = max(max(row) for row in results)
+        min_value = min(min(row) for row in results)
         heatmap_data = pd.DataFrame(results, index=np.round(bullish_range, 2), columns=np.round(bearish_range, 2))
+        print('heatmap_data: ', heatmap_data)
+        heatmap_data = heatmap_data.fillna(0)
+        custom_cmap = LinearSegmentedColormap.from_list("custom", ["red", "yellow", "green"])
         plt.figure(figsize=(10, 8))
-        sns.heatmap(heatmap_data, annot=True, fmt=".1f", cmap="YlGnBu")
+        sns.heatmap(heatmap_data, annot=True, fmt=".2f", cmap=custom_cmap, vmin=min_value, vmax=max_value, annot_kws={"color": "black"})
         plt.title(f"{metric} Heatmap")
         plt.xlabel("Bearish Threshold")
         plt.ylabel("Bullish Threshold")
@@ -168,3 +179,17 @@ class Backtest:
         Set the strategy.
         """
         self.strategy = strategy
+
+    def reset(self):
+        """
+        Reset the backtest parameters.
+        """
+        self.cash = self.initial_cash
+        self.position = 0
+        self.entry_price = 0
+        self.entry_index = 0
+        self.signals = []
+        self.equity_curve = []
+        self.holding_period = 0
+        self.portfolio_values = []
+        self.trade_logs = []
