@@ -7,7 +7,7 @@ from ..utils.indicator import IndicatorCalculator
 from ..utils.featureNormalizer import ExtrernalNormalizer, SelfNormalizer
 
 
-class HMM():
+class HMM_simplified():
     def __init__(self, training_data_filepath):
         self.model_path = 'models/hmm.pkl'
         self.model = None
@@ -16,12 +16,7 @@ class HMM():
         self.market_state_labels = {}
         self.stats = None
         self.initialize_metrics()
-        self.features = ['log_return',
-            'volume', 'rsi', 'macd', 'ema_12', 'ema_26', 'sma_20', 'volatility',
-            'ohlc_mean', 'price_range', 'candle_body', 'direction',
-            'rolling_volatility', 'volume_ema', 'volume_spike',
-            'bollinger_upper', 'bollinger_lower', 'bollinger_width'
-        ]
+        self.features = ['log_return', 'volume']
 
     def preprocess_data(self, df):
         df['timestamp'] = pd.to_datetime(df['timestamp'])
@@ -30,33 +25,40 @@ class HMM():
 
         ind_calc = (
             IndicatorCalculator(df)
-            .add_rsi()
-            .add_macd()
-            .add_ema(window=12)
-            .add_ema(window=26)
-            .add_sma(window=20)
-            .add_volatility()
+        #     .add_rsi()
+        #     .add_macd()
+        #     .add_ema(window=12)
+        #     .add_ema(window=26)
+        #     .add_sma(window=20)
+        #     .add_volatility()
             .add_returns()
-            .add_candle_stats()
-            .add_rolling_volatility()
-            .add_volume_stats()
-            .add_bollinger_bands()
+        #     .add_candle_stats()
+        #     .add_rolling_volatility()
+        #     .add_volume_stats()
+        #     .add_bollinger_bands()
         )
         result_df = ind_calc.get_df()
         return result_df.dropna()
 
+        # return df
+
     def initialize_metrics(self):
-        metrics = ['volume', 'rsi', 'macd', 'ema_12', 'ema_26', 'sma_20', 'volatility']
+        # metrics = ['volume', 'rsi', 'macd', 'ema_12', 'ema_26', 'sma_20', 'volatility']
+        # self.stats = self.df[metrics].agg(['mean', 'std']).T
+        metrics = ['volume']
         self.stats = self.df[metrics].agg(['mean', 'std']).T
 
 
     def train(self):
         features_to_normalize = [
-            'volume', 'rsi', 'macd', 'ema_12', 'ema_26', 'sma_20', 'volatility',
-            'ohlc_mean', 'price_range', 'candle_body', 'direction',
-            'rolling_volatility', 'volume_ema', 'volume_spike',
-            'bollinger_upper', 'bollinger_lower', 'bollinger_width'
-        ]
+            'volume']
+
+        # features_to_normalize = [
+        #     'volume', 'rsi', 'macd', 'ema_12', 'ema_26', 'sma_20', 'volatility',
+        #     'ohlc_mean', 'price_range', 'candle_body', 'direction',
+        #     'rolling_volatility', 'volume_ema', 'volume_spike',
+        #     'bollinger_upper', 'bollinger_lower', 'bollinger_width'
+        # ]
 
         normalizer = SelfNormalizer(self.df)
         normalized_features = normalizer.normalize(features_to_normalize)
