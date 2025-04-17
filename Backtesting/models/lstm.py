@@ -6,85 +6,115 @@ from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
 
-# ========================
-# CONFIG
-# ========================
-SEQ_LENGTH = 60
-FEATURE_COLUMNS = ['open', 'high', 'low', 'close', 'volume']  # 👈 Multi-feature input
-TARGET_COLUMN = 'close'  # 👈 What you want to predict
-EPOCHS = 10
-BATCH_SIZE = 32
-FILE_PATH = "../datasets/BTC-USD_1h_Training data_1739260800000_to_1738425540000.csv"
+class LSTMModel():
+    def __init__(self, training_data_filepath:str):
+        self.seq_length = 60 # number of time steps to look back
+        self.feature_columns = ['open', 'high', 'low', 'close', 'volume']  # 👈 Multi-feature input
+        self.target_columns = ['close', 'high', 'low']  # 👈 What you want to predict
+        self.epochs = 10 # number of times the entire dataset will be passed through the model during training
+        self.batch_size = 32 # how many samples the model processes before updating its weights during training.
+        self.training_file_path = training_data_filepath
+        self.model = None
+        self.target_indices = None
+        self.scaler = None
+        self.predict_df = None
+        self.result_df = None
 
-# ========================
-# LOAD AND PREPROCESS
-# ========================
-def load_data(filepath: str, features: list[str]) -> pd.DataFrame:
-    df = pd.read_csv(filepath)
-    return df[features]
+    def load_data(seld, filepath: str, features: list[str], include_time=False) -> pd.DataFrame:
+        df = pd.read_csv(filepath)
+        if include_time:
+            df['timestamp'] = pd.to_datetime(df['timestamp'])
+            return df[['timestamp'] + features]
+        return df[features]
 
-def normalize_data(df: pd.DataFrame) -> tuple[np.ndarray, MinMaxScaler]:
-    scaler = MinMaxScaler()
-    scaled = scaler.fit_transform(df.values)
-    return scaled, scaler
+    def normalize_data(self, df: pd.DataFrame, scaler: MinMaxScaler = None):
+        if scaler is None:
+            scaler = MinMaxScaler()
+            scaled = scaler.fit_transform(df.values)
+        else:
+            scaled = scaler.transform(df.values)
+        return scaled, scaler
 
-def create_sequences(data: np.ndarray, target_index: int, seq_length: int) -> tuple[np.ndarray, np.ndarray]:
-    X, y = [], []
-    for i in range(seq_length, len(data)):
-        X.append(data[i - seq_length:i])
-        y.append(data[i][target_index])  # 👈 Predict only the target (e.g., close)
-    return np.array(X), np.array(y)
+    def create_sequences(self, data: np.ndarray, target_indices: list[int], seq_length: int):
+        X, y = [], []
+        for i in range(seq_length, len(data)):
+            X.append(data[i - seq_length:i])
+            y.append(data[i][target_indices])
+        return np.array(X), np.array(y)
 
-# ========================
-# MODEL SETUP
-# ========================
-def build_lstm_model(input_shape: tuple[int, int]) -> Sequential:
-    model = Sequential([
-        LSTM(64, return_sequences=True, input_shape=input_shape),
-        LSTM(64),
-        Dense(1)
-    ])
-    model.compile(optimizer='adam', loss='mean_squared_error')
-    return model
+    def build_lstm_model(self, input_shape: tuple[int, int], output_dim: int) -> Sequential:
+        model = Sequential([
+            LSTM(64, return_sequences=True, input_shape=input_shape),
+            LSTM(64),
+            Dense(output_dim)
+        ])
+        model.compile(optimizer='adam', loss='mean_squared_error')
+        return model
 
-# ========================
-# PLOTTING
-# ========================
-def plot_predictions(actual: np.ndarray, predicted: np.ndarray):
-    plt.figure(figsize=(12, 6))
-    plt.plot(actual, label='Actual')
-    plt.plot(predicted, label='Predicted')
-    plt.title("LSTM OHLCV Price Prediction")
-    plt.xlabel("Time")
-    plt.ylabel("Price")
-    plt.legend()
-    plt.show()
+    def plot_predictions(self, actual: np.ndarray, predicted: np.ndarray, columns: list[str], time_labels=None):
+        plt.figure(figsize=(15, 6))
+        for i, col in enumerate(columns):
+            plt.subplot(1, len(columns), i + 1)
+            x = time_labels if time_labels is not None else np.arange(len(actual))
+            plt.plot(x, actual[:, i], label='Actual')
+            plt.plot(x, predicted[:, i], label='Predicted')
+            plt.title(f"{col.capitalize()} Prediction")
+            plt.xlabel("Time")
+            plt.ylabel(col.capitalize())
+            plt.legend()
+        plt.tight_layout()
+        plt.show()
 
-# ========================
-# MAIN PIPELINE
-# ========================
-def run_pipeline():
-    df = load_data(FILE_PATH, FEATURE_COLUMNS)
-    scaled_data, scaler = normalize_data(df)
 
-    target_index = FEATURE_COLUMNS.index(TARGET_COLUMN)
-    X, y = create_sequences(scaled_data, target_index, SEQ_LENGTH)
+    def train(self):
+        # === Load and normalize training data ===
+        df_train = self.load_data(self.training_file_path, self.feature_columns)
+        scaled_train, self.scaler = self.normalize_data(df_train)
 
-    model = build_lstm_model(input_shape=(X.shape[1], X.shape[2]))
-    model.fit(X, y, epochs=EPOCHS, batch_size=BATCH_SIZE)
+        self.target_indices = [self.feature_columns.index(col) for col in self.target_columns]
+        X_train, y_train = self.create_sequences(scaled_train, self.target_indices, self.seq_length)
 
-    predictions = model.predict(X)
+        print(f"✅ Training set shape: X={X_train.shape}, y={y_train.shape}")
 
-    # Only inverse-transform the predicted target
-    close_scaler = MinMaxScaler()
-    close_scaler.min_, close_scaler.scale_ = scaler.min_[target_index], scaler.scale_[target_index]
-    predicted_prices = close_scaler.inverse_transform(predictions)
-    actual_prices = close_scaler.inverse_transform(y.reshape(-1, 1))
+        # === Build and train model ===
+        model = self.build_lstm_model(input_shape=(X_train.shape[1], X_train.shape[2]), output_dim=len(self.target_columns))
+        model.fit(X_train, y_train, epochs=self.epochs, batch_size=self.batch_size)
 
-    plot_predictions(actual_prices, predicted_prices)
+        self.model = model
 
-# ========================
-# RUN
-# ========================
-if __name__ == "__main__":
-    run_pipeline()
+    def predict(self, testing_file_path):
+        if self.model is None:
+            raise Exception("Model not trained. Please run the train() method first.")
+        # === Load and normalize test data ===
+        df_test = self.load_data(testing_file_path, self.feature_columns, include_time=True)
+        time_labels = df_test['timestamp'].iloc[self.seq_length:]  # Align time with prediction steps
+
+        df_test_no_time = df_test[self.feature_columns]  # drop datetime for normalization
+        scaled_test, _ = self.normalize_data(df_test_no_time, self.scaler)
+        X_test, y_test = self.create_sequences(scaled_test, self.target_indices, self.seq_length)
+
+        print(f"✅ Testing set shape: X={X_test.shape}, y={y_test.shape}")
+        print(f"🕒 Predicting for {len(X_test)} hours ≈ {len(X_test) / 24:.1f} days")
+
+        # === Predict and inverse transform ===
+        predictions = self.model.predict(X_test)
+       
+
+        dummy = np.zeros((predictions.shape[0], len(self.feature_columns)))
+        dummy[:, self.target_indices] = predictions
+        predicted_prices = self.scaler.inverse_transform(dummy)[:, self.target_indices]
+
+        dummy[:, self.target_indices] = y_test
+        actual_prices = self.scaler.inverse_transform(dummy)[:, self.target_indices]
+
+        # === Plot results ===
+        self.plot_predictions(actual_prices, predicted_prices, self.target_columns, time_labels)
+
+        # === Save results to CSV ===
+        self.result_df = pd.DataFrame({
+            'timestamp': time_labels,
+            **{f'actual_{col}': actual_prices[:, i] for i, col in enumerate(self.target_columns)},
+            **{f'predicted_{col}': predicted_prices[:, i] for i, col in enumerate(self.target_columns)},
+        })
+        self.result_df.to_csv("prediction_results.csv", index=False)
+        print("📁 Results saved to prediction_results.csv")
