@@ -2,41 +2,45 @@ from abc import ABC, abstractmethod
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from .base import Strategy  
-from ..models.hmm_simplified import HMM_simplified
-from ..models.lstm import LSTMModel
+from ..strategies.marketRegimeStrategy_simplified import MarketRegimeStrategy
+from ..strategies.deepPredictorStrategy import DeepPredictorStrategy
 
 class MetaFusionStrategy(Strategy):
-    def __init__(self, training_dataset_filepath, predict_dataset_filepath=None):
-        super().__init__(training_dataset_filepath, predict_dataset_filepath)
+    def __init__(self, training_dataset_filepath):
+        super().__init__(training_dataset_filepath, None)
+        self.marketRegimeStrategy = MarketRegimeStrategy(training_dataset_filepath, bullish_threshold=0.7, bearish_threshold=0.3)
+        self.deepPredictorStrategy = DeepPredictorStrategy(training_dataset_filepath, seq_length=10, epochs=50, batch_size=32)
+        self.marketRegimeData = None
+        self.deepPredictorData = None
+        self.concatenated_data = None
 
-        # Initialize models
-        self.hmmodel = HMM_simplified(training_dataset_filepath)
-        self.lstmmodel = LSTMModel(training_dataset_filepath)
+    def preprocess_data(self, predict_data_filepath):
+        self.set_predict_dataset_filepath(predict_data_filepath)
+        self.marketRegimeData = self.marketRegimeStrategy.generate_signals(self.predict_dataset_filepath)
+        self.deepPredictorData = self.deepPredictorStrategy.generate_signals(self.predict_dataset_filepath)
+    
+        self.concatenated_data = self.merge_model_outputs()
+        print("Merged DataFrame:")
+        print(self.concatenated_data)
+    
+    def merge_model_outputs(self):
+        lstm_df = self.deepPredictorData
+        hmm_df = self.marketRegimeData
+        on = 'timestamp'
+        how = 'inner'
+        # Ensure the 'on' column exists in both DataFrames
+        if on not in lstm_df.columns or on not in hmm_df.columns:
+            raise ValueError(f"'{on}' column must exist in both DataFrames.")
 
-        # Train models
-        self.hmmodel.train()
-        self.lstmmodel.train()
+        # Optional: sort both by timestamp to make it clean
+        lstm_df = lstm_df.sort_values(by=on).reset_index(drop=True)
+        hmm_df = hmm_df.sort_values(by=on).reset_index(drop=True)
 
-        # Initialize meta-model (Logistic Regression)
-        self.meta_model = LogisticRegression()
+        # Merge the DataFrames
+        merged_df = pd.merge(lstm_df, hmm_df, on=on, how=how, suffixes=('_lstm', '_hmm'))
 
-        # Preprocessing of data
-        self.hmm_data, self.lstm_data = self.preprocess_data(self.training_df)
+        return merged_df
 
-        # Train the meta-model (stacking approach)
-        self.train_meta_model()
-
-    def preprocess_data(self, data):
-        """
-        Preprocess the data for both HMM and LSTM models.
-        """
-        # Preprocess data for HMM
-        hmm_data = self.hmmodel.preprocess_data(data)
-        
-        # Preprocess data for LSTM
-        lstm_data = self.lstmmodel.preprocess_data(data)
-        
-        return hmm_data, lstm_data
 
     def set_thresholds(self, *args, **kwargs):
         """

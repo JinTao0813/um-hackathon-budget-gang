@@ -18,6 +18,7 @@ class LSTMModel():
         self.target_indices = None
         self.scaler = None
         self.predict_df = None
+        self.result_df = None
 
     def load_data(seld, filepath: str, features: list[str], include_time=False) -> pd.DataFrame:
         df = pd.read_csv(filepath)
