@@ -16,7 +16,7 @@ class HMM_simplified():
         self.market_state_labels = {}
         self.stats = None
         self.initialize_metrics()
-        self.features = ['log_return', 'volume']
+        self.features = ['log_return', 'netflow_total', 'exchange_whale_ratio', 'funding_rates', 'sa_average_dormancy']
 
     def preprocess_data(self, df):
         df['timestamp'] = pd.to_datetime(df['timestamp'])
@@ -45,13 +45,13 @@ class HMM_simplified():
     def initialize_metrics(self):
         # metrics = ['volume', 'rsi', 'macd', 'ema_12', 'ema_26', 'sma_20', 'volatility']
         # self.stats = self.df[metrics].agg(['mean', 'std']).T
-        metrics = ['volume']
+        metrics = ['netflow_total', 'exchange_whale_ratio', 'funding_rates', 'sa_average_dormancy']
         self.stats = self.df[metrics].agg(['mean', 'std']).T
 
 
     def train(self):
         features_to_normalize = [
-            'volume']
+            'netflow_total', 'exchange_whale_ratio', 'funding_rates', 'sa_average_dormancy']
 
         # features_to_normalize = [
         #     'volume', 'rsi', 'macd', 'ema_12', 'ema_26', 'sma_20', 'volatility',
@@ -76,7 +76,7 @@ class HMM_simplified():
         print("Converged:", self.model.monitor_.converged)
         print("Final log likelihood:", self.model.monitor_.history[-1])
         print("State Labels:", self.market_state_labels)
-        print(df[['timestamp', 'open', 'close', 'log_return', 'state', 'market_state']])
+        print(df[['timestamp', 'open', 'close', 'netflow_total', 'exchange_whale_ratio', 'funding_rates', 'sa_average_dormancy', 'log_return', 'state', 'market_state']])
         
         self.save_model()
 
