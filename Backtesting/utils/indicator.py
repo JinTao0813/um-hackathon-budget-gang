@@ -35,7 +35,7 @@ class IndicatorCalculator:
         return self
 
     def add_returns(self):
-        # self.df["return_pct"] = self.df["close"].pct_change() * 100
+        self.df["return_pct"] = self.df["close"].pct_change() * 100
         self.df["log_return"] = (self.df["close"] / self.df["close"].shift(1)).apply(
             lambda x: pd.NA if x <= 0 else np.log(x)
         )

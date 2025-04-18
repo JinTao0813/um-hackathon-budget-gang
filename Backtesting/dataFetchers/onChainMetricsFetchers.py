@@ -81,10 +81,9 @@ class CryptoQuantFetcher(DataFetcher):
 
         # Save result
         os.makedirs("datasets", exist_ok=True)
-        output_path = output_filename
-        merged_df.to_csv(output_path, index=False, float_format="%.10f")
-        print(f"✅ Merged CSV saved to: {output_path}")
-        return output_path
+        merged_df.to_csv(output_filename, index=False, float_format="%.10f")
+        print(f"✅ Merged CSV saved to: {output_filename}")
+        return output_filename
 
     def fetch_ohlcv(self, window, start_time=None, end_time=None, sleep_time=0.5):
         print(f"Fetching {self.endpoint_category}/{self.metric} data for {self.currency} from {self.exchange} with window '{window}'...")

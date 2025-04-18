@@ -7,9 +7,8 @@ from ..utils.indicator import IndicatorCalculator
 from ..utils.featureNormalizer import ExtrernalNormalizer, SelfNormalizer
 
 
-class HmmModel():
-    def __init__(self, training_data_filepath, seed=42):
-        self.seed = seed
+class HMM():
+    def __init__(self, training_data_filepath):
         self.model_path = 'models/hmm.pkl'
         self.model = None
         self.training_data = pd.read_csv(training_data_filepath)
@@ -26,41 +25,28 @@ class HmmModel():
 
         ind_calc = (
             IndicatorCalculator(df)
-        #     .add_rsi()
-        #     .add_macd()
-        #     .add_ema(window=12)
-        #     .add_ema(window=26)
-        #     .add_sma(window=20)
-        #     .add_volatility()
+            # .add_rsi()
+            # .add_macd()
+            # .add_ema(window=12)
+            # .add_ema(window=26)
+            # .add_sma(window=20)
+            # .add_volatility()
             .add_returns()
-        #     .add_candle_stats()
-        #     .add_rolling_volatility()
-        #     .add_volume_stats()
-        #     .add_bollinger_bands()
+            # .add_candle_stats()
+            # .add_rolling_volatility()
+            # .add_volume_stats()
+            # .add_bollinger_bands()
         )
         result_df = ind_calc.get_df()
         return result_df.dropna()
 
-        # return df
-
     def initialize_metrics(self):
-        print(self.df)
-        # metrics = ['volume', 'rsi', 'macd', 'ema_12', 'ema_26', 'sma_20', 'volatility']
-        # self.stats = self.df[metrics].agg(['mean', 'std']).T
         metrics = ['netflow_total', 'exchange_whale_ratio', 'funding_rates', 'sa_average_dormancy']
         self.stats = self.df[metrics].agg(['mean', 'std']).T
 
 
     def train(self):
-        features_to_normalize = [
-            'netflow_total', 'exchange_whale_ratio', 'funding_rates', 'sa_average_dormancy']
-
-        # features_to_normalize = [
-        #     'volume', 'rsi', 'macd', 'ema_12', 'ema_26', 'sma_20', 'volatility',
-        #     'ohlc_mean', 'price_range', 'candle_body', 'direction',
-        #     'rolling_volatility', 'volume_ema', 'volume_spike',
-        #     'bollinger_upper', 'bollinger_lower', 'bollinger_width'
-        # ]
+        features_to_normalize = ['netflow_total', 'exchange_whale_ratio', 'funding_rates', 'sa_average_dormancy']
 
         normalizer = SelfNormalizer(self.df)
         normalized_features = normalizer.normalize(features_to_normalize)
@@ -88,7 +74,7 @@ class HmmModel():
 
 
     def train_hmm_model(self, observations, n_states=3, n_iter=1000):
-        model = GaussianHMM(n_components=n_states, covariance_type="diag", n_iter=n_iter, verbose=True, random_state=self.seed)
+        model = GaussianHMM(n_components=n_states, covariance_type="diag", n_iter=n_iter, verbose=True)
         model.fit(observations)
         return model
 
@@ -100,18 +86,16 @@ class HmmModel():
 
 
     def identify_market_states(self, df):
-        print("Unique states:", df['state'].unique())
         state_analysis = df.groupby('state').agg({'log_return': 'mean'})
         bullish = state_analysis['log_return'].idxmax()
         bearish = state_analysis['log_return'].idxmin()
         neutral = list(set(df['state'].unique()) - {bullish, bearish})[0]
         
         label_map = {
-            int(bullish): 'buy',
-            int(bearish): 'sell',
-            int(neutral): 'hold'
+            int(bullish): 'bullish',
+            int(bearish): 'bearish',
+            int(neutral): 'neutral'
         }
-        print(df['state'].unique())
         df['market_state'] = df['state'].map(label_map)
         return df, label_map
 
@@ -156,7 +140,7 @@ class HmmModel():
         return market_state_today
 
     def predict_probabilities(self, df, i):
-        posterior_probs = self.model.predict_proba(df[self.features].values)
+        posterior_probs = self.model.predict_proba(df[self.features].values  )
         
         # Get the probabilities for time step i
         if i < len(posterior_probs):

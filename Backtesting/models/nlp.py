@@ -317,5 +317,3 @@ def calculate_trading_signals(sentiment_df, price_data=None):
         trading_signals['sentiment_data'] = [{'Date': item['Date'], 'Sentiment': item['Sentiment']} for item in sample_data]
     
     return trading_signals
-
-

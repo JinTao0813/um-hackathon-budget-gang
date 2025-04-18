@@ -7,9 +7,9 @@ from matplotlib.colors import LinearSegmentedColormap
 
 
 class Backtest:
-    def __init__(self, strategy: Strategy, initial_cash, max_holding_period, trading_fees):
+    def __init__(self, data_filepath, strategy: Strategy, initial_cash, max_holding_period, trading_fees):
+        self.data = pd.read_csv(data_filepath)
         self.strategy = strategy
-        self.data = None
         self.initial_cash = initial_cash
         self.cash = initial_cash
         self.position = 0
@@ -25,23 +25,32 @@ class Backtest:
 
     def run(self):
         self.reset()
-        self.data = self.strategy.generate_signals()
+        df = self.data.copy()
+        df = self.strategy.set_predict_df(df)
+        df = self.strategy.generate_signals()
         self.signals = self.strategy.signals
+
+        # Convert DataFrame to NumPy array and get column indices
+        df_np = df.to_numpy()
+        columns = df.columns
+        col_idx = {col: idx for idx, col in enumerate(columns)}
+
         equity = self.initial_cash
-        for i in range(len(self.strategy.signals)):
-            today_data = self.data.iloc[i]
-            date = today_data.get('timestamp', None)
-            price = today_data['close']
+
+        for i in range(len(df_np)):
+            row = df_np[i]
+            date = row[col_idx.get('timestamp', -1)] if 'timestamp' in col_idx else None
+            price = row[col_idx['close']]
 
             trade = 0
             pnl = 0
             drawdown = 0
-
             prev_position = self.position
 
             # Strategy decides what to do
             self.cash, self.position, self.entry_price, self.entry_index, self.holding_period, action = self.strategy.execute_trade(
-                i, today_data, self.cash, self.position, self.entry_price, self.entry_index, self.holding_period, self.trading_fees, self.max_holding_period
+                i, row, col_idx, self.cash, self.position, self.entry_price, self.entry_index, self.holding_period,
+                self.trading_fees, self.max_holding_period
             )
 
             if action in ['buy', 'sell']:
@@ -49,13 +58,14 @@ class Backtest:
 
             # Calculate PnL
             if i > 0:
-                prev_data = self.data.iloc[i - 1]
-                price_change = (price - prev_data['close']) / prev_data['close']
+                prev_price = df_np[i - 1][col_idx['close']]
+                price_change = (price - prev_price) / prev_price
                 prev_equity = self.equity_curve[-1] if self.equity_curve else self.initial_cash
                 pnl = price_change * prev_position
                 equity = prev_equity + pnl
             else:
                 equity = self.initial_cash
+                price_change = 0
 
             self.equity_curve.append(equity)
             self.portfolio_values.append(equity)
@@ -64,7 +74,7 @@ class Backtest:
             self.trade_logs.append({
                 'datetime': date,
                 'close': price,
-                'price_change': price_change if i > 0 else 0,
+                'price_change': price_change,
                 'position': self.position,
                 'trade': trade,
                 'pnl': pnl,
@@ -123,15 +133,10 @@ class Backtest:
         print(f"Trade logs saved to {filename}")
 
     def run_backtest_heatmap(self, bullish_range=None, bearish_range=None, metric='Final Portfolio Value'):
-        # if bullish_range is None:
-        #     bullish_range = np.linspace(0.4, 0.7, 7)
-        # if bearish_range is None:
-        #     bearish_range = np.linspace(0.3, 0.6, 7)
-
         if bullish_range is None:
-            bullish_range = np.linspace(0.4, 0.5, 2)
+            bullish_range = np.linspace(0.4, 0.7, 7)
         if bearish_range is None:
-            bearish_range = np.linspace(0.3, 0.4, 2)
+            bearish_range = np.linspace(0.3, 0.6, 7)
 
         print("bullish range: ", bullish_range)
         print("bearish range: ", bearish_range)
@@ -196,12 +201,6 @@ class Backtest:
         self.holding_period = 0
         self.portfolio_values = []
         self.trade_logs = []
-    
-    def set_predict_filepath(self, filepath1, filepath2):
-        """
-        Set the prediction data file path.
-        """
-        self.strategy.set_predict_dataset_filepath(filepath1, filepath2)
-        
-    def set_best_thresholds(self, bull_thres, bear_thres):
+
+    def set_thresholds(self, bull_thres, bear_thres):
         self.strategy.set_thresholds(bullish_threshold=bull_thres, bearish_threshold=bear_thres)
