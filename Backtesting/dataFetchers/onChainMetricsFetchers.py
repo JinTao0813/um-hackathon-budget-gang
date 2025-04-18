@@ -81,7 +81,7 @@ class CryptoQuantFetcher(DataFetcher):
 
         # Save result
         os.makedirs("datasets", exist_ok=True)
-        output_path = os.path.join("datasets", output_filename)
+        output_path = output_filename
         merged_df.to_csv(output_path, index=False, float_format="%.10f")
         print(f"✅ Merged CSV saved to: {output_path}")
         return output_path

@@ -1,7 +1,5 @@
 from .base import Strategy
 from .. models.lstm import LSTMModel
-import pandas as pd
-
 
 class DeepPredictorStrategy(Strategy):
     def __init__(self, training_dataset_filepath, seq_length, epochs, batch_size):

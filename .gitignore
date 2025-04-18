@@ -5,6 +5,7 @@ venv/
 __pycache__/
 *.py[cod]
 *.pyo
+datasets/
 
 # Jupyter notebooks checkpoint files
 .ipynb_checkpoints/

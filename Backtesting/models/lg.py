@@ -10,7 +10,7 @@ class LogisticRegressionModel():
         self.model = None
         self.inverse_label_map = None
 
-    def generate_labels_from_prices(self, df, future_window=5, profit_threshold=0.02):
+    def generate_labels_from_prices(self, df, future_window=5):
         """
         Generate labels based on future price movement.
         Labels: 1 = Buy, -1 = Sell, 0 = Hold
@@ -19,15 +19,16 @@ class LogisticRegressionModel():
         for i in range(len(df) - future_window):
             current_price = df.iloc[i]['close']
             future_price = df.iloc[i + future_window]['close']
-            change = (future_price - current_price) / current_price
-            if change > profit_threshold:
+            if current_price < future_price:
                 labels.append(1)
-            elif change < -profit_threshold:
+            elif current_price > future_price:
                 labels.append(-1)
             else:
                 labels.append(0)
         labels.extend([0] * future_window)  # padding for final rows
+        print("Labels generated from prices:", labels)
         return pd.Series(labels, index=df.index)
+
 
     def train(self):
         """
