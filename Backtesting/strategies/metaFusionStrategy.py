@@ -21,7 +21,7 @@ class MetaFusionStrategy(Strategy):
         self.merged_training_df = None
         self.merged_training_filepath = None
         self.merged_predict_df = None
-        self.merged_predict_filepath = None
+        self.merged_predict_filepath = "merged_predict_data.csv"
 
     def set_seed(self, seed):
         np.random.seed(seed)
@@ -33,10 +33,6 @@ class MetaFusionStrategy(Strategy):
         concatenated_df = self.merge_model_outputs(marketRegimeData, deepPredictorData)
         return concatenated_df
     
-    def get_merged_predict_df(self, hmm_predict_dataset_filepath, lstm_predict_dataset_filepath):
-        self.merged_predict_df = self.preprocess_data(hmm_predict_dataset_filepath, lstm_predict_dataset_filepath)
-        self.merged_predict_filepath = self.merged_predict_df.to_csv("merged_predict_data.csv", index=False)
-
     def merge_model_outputs(self, marketRegimeData, deepPredictorData):
         lstm_df = deepPredictorData.rename(columns={"predictions": "deepPredictor"})
         hmm_df = marketRegimeData.rename(columns={"predictions": "marketRegime"})
@@ -49,6 +45,11 @@ class MetaFusionStrategy(Strategy):
         merged_df = merged_df.drop_duplicates()
 
         return merged_df
+        
+    def get_merged_predict_df(self, hmm_predict_dataset_filepath, lstm_predict_dataset_filepath):
+        self.merged_predict_df = self.preprocess_data(hmm_predict_dataset_filepath, lstm_predict_dataset_filepath)
+        self.merged_predict_df.to_csv(self.merged_predict_filepath, index=False)
+
 
     def weighted_vote(self, df, weight_hmm=0.4, weight_lstm=0.6):
         votes = {}
@@ -58,7 +59,7 @@ class MetaFusionStrategy(Strategy):
         return max(votes, key=votes.get)
 
     def generate_signals(self):
-        self.merged_predict_df = self.preprocess_data(self.hmm_predict_dataset_filepath, self.lstm_predict_dataset_filepath)
+        self.get_merged_predict_df(self.hmm_predict_dataset_filepath, self.lstm_predict_dataset_filepath)
         self.reset_signals()
 
         # Apply weighted vote
