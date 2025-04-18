@@ -54,7 +54,7 @@ class MetaFusionStrategy(Strategy):
         votes = {}
         votes[df['marketRegime']] = votes.get(df['marketRegime'], 0) + weight_hmm
         votes[df['deepPredictor']] = votes.get(df['deepPredictor'], 0) + weight_lstm
-        print("Votes:", votes)
+        # print("Votes:", votes)
         return max(votes, key=votes.get)
 
     def generate_signals(self):
@@ -68,7 +68,7 @@ class MetaFusionStrategy(Strategy):
         # Convert predictions to signal list
         self.signals = self.merged_predict_df['ensemble_prediction'].tolist()
 
-        print("Signals in MetaFusionStrategy:", self.signals)
+        # print("Signals in MetaFusionStrategy:", self.signals)
         return self.merged_predict_df
 
 

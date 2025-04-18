@@ -15,7 +15,7 @@ class MarketRegimeStrategy(Strategy):
     def generate_signals(self, predict_data_filepath):
         self.set_predict_dataset_filepath(predict_data_filepath)
         self.reset_signals()
-        print("Predict data fram in marketregimestrategy:", self.predict_df)
+        # print("Predict data fram in marketregimestrategy:", self.predict_df)
         processed_df = self.hmmodel.preprocess_data(self.predict_df)
 
         prob_bullish_list = []

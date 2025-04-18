@@ -117,8 +117,8 @@ class LSTMModel():
         dummy[:, self.target_indices] = y_test
         actual_prices = self.scaler.inverse_transform(dummy)[:, self.target_indices]
 
-        # === Plot results ===
-        self.plot_predictions(actual_prices, predicted_prices, self.target_columns, time_labels)
+        # # === Plot results ===
+        # self.plot_predictions(actual_prices, predicted_prices, self.target_columns, time_labels)
 
         # === Save results to CSV ===
         self.result_df = pd.DataFrame({
@@ -126,7 +126,7 @@ class LSTMModel():
             **{f'actual_{col}': actual_prices[:, i] for i, col in enumerate(self.target_columns)},
             **{f'predicted_{col}': predicted_prices[:, i] for i, col in enumerate(self.target_columns)},
         })
-        self.result_df.to_csv("prediction_results.csv", index=False)
-        print("📁 Results saved to prediction_results.csv")
+        # self.result_df.to_csv("prediction_results.csv", index=False)
+        # print("📁 Results saved to prediction_results.csv")
 
     
