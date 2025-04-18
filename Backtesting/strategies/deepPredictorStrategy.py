@@ -2,12 +2,13 @@ from .base import Strategy
 from .. models.lstm import LSTMModel
 
 class DeepPredictorStrategy(Strategy):
-    def __init__(self, training_dataset_filepath, seq_length, epochs, batch_size):
+    def __init__(self, training_dataset_filepath, seq_length, epochs, batch_size, seed):
         super().__init__(training_dataset_filepath, None)
+        self.seed = seed
         self.seq_length = seq_length
         self.epochs = epochs
         self.batch_size = batch_size
-        self.lstm_model = LSTMModel(training_dataset_filepath)
+        self.lstm_model = LSTMModel(training_dataset_filepath, self.seed)
         self.lstm_model.train()
         self.result_df = None
 

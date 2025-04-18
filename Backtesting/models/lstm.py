@@ -5,9 +5,12 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
+import os
+import random
 
 class LSTMModel():
-    def __init__(self, training_data_filepath:str):
+    def __init__(self, training_data_filepath:str, seed):
+        self.seed = seed
         self.seq_length = 60 # number of time steps to look back
         self.feature_columns = ['open', 'high', 'low', 'close', 'volume']  # 👈 Multi-feature input
         self.target_columns = ['close', 'high', 'low']  # 👈 What you want to predict
@@ -41,8 +44,15 @@ class LSTMModel():
             X.append(data[i - seq_length:i])
             y.append(data[i][target_indices])
         return np.array(X), np.array(y)
+    
+    def set_seed(self, seed):
+        os.environ['PYTHONHASHSEED'] = str(seed)
+        random.seed(seed)
+        np.random.seed(seed)
+        tf.random.set_seed(seed)
 
     def build_lstm_model(self, input_shape: tuple[int, int], output_dim: int) -> Sequential:
+        self.set_seed(self.seed)
         model = Sequential([
             LSTM(64, return_sequences=True, input_shape=input_shape),
             LSTM(64),
@@ -118,3 +128,5 @@ class LSTMModel():
         })
         self.result_df.to_csv("prediction_results.csv", index=False)
         print("📁 Results saved to prediction_results.csv")
+
+    

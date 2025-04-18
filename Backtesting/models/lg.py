@@ -8,7 +8,7 @@ class LogisticRegressionModel():
     def __init__(self, df):
         self.training_df = df
         self.model = None
-        self.inverse_label_map = None
+        self.inverse_label_map = {-1: 'sell', 0: 'hold', 1: 'buy'}
 
     def generate_labels_from_prices(self, df, future_window=5):
         """
@@ -28,6 +28,27 @@ class LogisticRegressionModel():
         labels.extend([0] * future_window)  # padding for final rows
         print("Labels generated from prices:", labels)
         return pd.Series(labels, index=df.index)
+    
+    def generate_labels_from_singals(self, df):
+        """
+        Combines market regime and deep predictor signals to make final trading decisions.
+        Final decision: 1 = Buy, 0 = Hold, -1 = Sell
+        """
+        decisions = []
+        for i in range(len(df)):
+            regime = df.iloc[i]['marketRegime'].lower()
+            predictor = df.iloc[i]['deepPredictor'].lower()
+            
+            if regime == 'bullish' and predictor == 'buy':
+                decisions.append(1)  # Buy
+            elif regime == 'bearish' and predictor == 'sell':
+                decisions.append(-1)  # Sell
+            else:
+                # If market regime is neutral or signals are not aligned, hold
+                decisions.append(0)  # otherwise Hold
+
+        print("Decisions based on signals:", pd.Series(decisions, index=df.index))
+        return pd.Series(decisions, index=df.index)
 
 
     def train(self):
@@ -40,18 +61,14 @@ class LogisticRegressionModel():
         # Prepare training features and labels
         X = self.training_df[["deepPredictor", "marketRegime"]]
         y = self.training_df["target"]
+        print("X: ", X)
+        print("y: ", y)
 
-        y_raw = self.training_df["target"]
-        y = y_raw.map({
-            -1: 0,  # sell
-            0: 1,  # hold
-            1: 2   # buy
-        })
+        y = self.training_df["target"]
 
         if y.isnull().any():
             raise ValueError("Target column contains unexpected values. Only 'buy' and 'sell' are allowed.")
 
-        self.inverse_label_map = {0: 'sell', 1: 'hold', 2: 'buy'}
 
         # Encode categorical input features using OneHotEncoder in a pipeline
         categorical_features = ["deepPredictor", "marketRegime"]

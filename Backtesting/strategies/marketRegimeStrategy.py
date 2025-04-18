@@ -3,11 +3,12 @@ from ..models.hmm import HmmModel
 import pandas as pd
 
 class MarketRegimeStrategy(Strategy):
-    def __init__(self, training_dataset_filepath, bullish_threshold, bearish_threshold):
+    def __init__(self, training_dataset_filepath, seed, bullish_threshold, bearish_threshold):
         super().__init__(training_dataset_filepath, None)
+        self.seed = seed
         self.bullish_threshold = bullish_threshold
         self.bearish_threshold = bearish_threshold
-        self.hmmodel = HmmModel(training_dataset_filepath)
+        self.hmmodel = HmmModel(training_dataset_filepath, seed)
         self.hmmodel.train()
         self.result_df = None
 

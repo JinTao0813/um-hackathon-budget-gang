@@ -8,7 +8,8 @@ from ..utils.featureNormalizer import ExtrernalNormalizer, SelfNormalizer
 
 
 class HmmModel():
-    def __init__(self, training_data_filepath):
+    def __init__(self, training_data_filepath, seed=42):
+        self.seed = seed
         self.model_path = 'models/hmm.pkl'
         self.model = None
         self.training_data = pd.read_csv(training_data_filepath)
@@ -87,7 +88,7 @@ class HmmModel():
 
 
     def train_hmm_model(self, observations, n_states=3, n_iter=1000):
-        model = GaussianHMM(n_components=n_states, covariance_type="diag", n_iter=n_iter, verbose=True)
+        model = GaussianHMM(n_components=n_states, covariance_type="diag", n_iter=n_iter, verbose=True, random_state=self.seed)
         model.fit(observations)
         return model
 
@@ -106,9 +107,9 @@ class HmmModel():
         neutral = list(set(df['state'].unique()) - {bullish, bearish})[0]
         
         label_map = {
-            int(bullish): 'bullish',
-            int(bearish): 'bearish',
-            int(neutral): 'neutral'
+            int(bullish): 'buy',
+            int(bearish): 'sell',
+            int(neutral): 'hold'
         }
         print(df['state'].unique())
         df['market_state'] = df['state'].map(label_map)
