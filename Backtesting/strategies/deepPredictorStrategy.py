@@ -12,7 +12,7 @@ class DeepPredictorStrategy(Strategy):
         self.lstm_model.train()
         self.result_df = None
 
-    def generate_signals(self, predict_data_filepath):
+    def generate_signals(self, predict_data_filepath, save_file_name):
         print("Predict data filepath in DeepPredictorStrategy:", predict_data_filepath)
         self.set_predict_dataset_filepath(predict_data_filepath)
         print("Predict data filepath in DeepPredictorStrategy:", self.predict_dataset_filepath)
@@ -35,9 +35,9 @@ class DeepPredictorStrategy(Strategy):
             curr_pred = predicted_close.iloc[i]
 
             # Simple logic: predict ↑ => buy, predict ↓ => sell
-            if curr_pred > prev_close:
+            if curr_pred < prev_close:
                 signals.append('buy')
-            elif curr_pred < prev_close:
+            elif curr_pred > prev_close:
                 signals.append('sell')
             else:
                 signals.append('hold')
@@ -47,27 +47,9 @@ class DeepPredictorStrategy(Strategy):
         self.result_df['deepPredictor'] = signals
         self.signals = signals  # Store for use in execute_trade
 
-        print("✅ Signals generated using LSTM predictions")
+        self.result_df.to_csv(save_file_name)
         return self.result_df
 
-    def execute_trade(self, i, data_row, cash, position, entry_price, entry_index, holding_period, trading_fees, max_holding_period):
-        signal = self.result_df.iloc[i]['signal']
-        close_price = data_row['close']
-
-        if signal == 'buy' and position == 0:
-            position = 1
-            entry_price = close_price
-            entry_index = i
-            cash -= close_price + trading_fees
-            trade_signal = 'buy'
-        elif signal == 'sell' and position == 1:
-            position = 0
-            cash += close_price - trading_fees
-            trade_signal = 'sell'
-        else:
-            trade_signal = 'hold'
-
-        return cash, position, entry_price, entry_index, holding_period + 1, trade_signal   
     
     def set_thresholds(self, *args, **kwargs):
         return super().set_thresholds(*args, **kwargs)

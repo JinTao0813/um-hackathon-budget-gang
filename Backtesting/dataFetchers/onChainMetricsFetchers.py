@@ -20,7 +20,7 @@ class CryptoQuantFetcher(DataFetcher):
     @staticmethod
     def merge_selected_csv_files(csv_files, output_filename, start_ts=None, end_ts=None):
         """
-        Merges selected CSV files into one, aligning on a fixed hourly timestamp index.
+        Merges selected CSV files into one, aligning on a fixed daily timestamp index.
         Useful for consistent merging of mixed-frequency time series.
         Converts all non-timestamp columns to float for normalization.
         """
@@ -45,13 +45,12 @@ class CryptoQuantFetcher(DataFetcher):
             for col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors="coerce")
 
-            # Detect frequency
+            # Resample to daily if not already daily
             freq = df.index.to_series().diff().mode()[0]
-            is_daily = freq >= pd.Timedelta(hours=23)
+            is_hourly = freq <= pd.Timedelta(hours=1.5)
 
-            # Resample if daily
-            if is_daily:
-                df = df.resample("1H").ffill()
+            if is_hourly:
+                df = df.resample("1D").ffill()
 
             all_data.append(df)
 
@@ -65,8 +64,8 @@ class CryptoQuantFetcher(DataFetcher):
             print("❌ No valid CSVs merged.")
             return
 
-        # Create fixed hourly index
-        time_index = pd.date_range(start=start_ts, end=end_ts, freq="1H")
+        # Create fixed daily index
+        time_index = pd.date_range(start=start_ts, end=end_ts, freq="1D")
         merged_df = pd.DataFrame(index=time_index)
 
         for df in all_data:
@@ -78,13 +77,15 @@ class CryptoQuantFetcher(DataFetcher):
 
         # ❌ Drop rows with any missing data
         merged_df.dropna(inplace=True)
+        merged_df.drop_duplicates(subset=["timestamp"], inplace=True)
 
         # Save result
         os.makedirs("datasets", exist_ok=True)
         output_path = output_filename
         merged_df.to_csv(output_path, index=False, float_format="%.10f")
-        print(f"✅ Merged CSV saved to: {output_path}")
+        print(f"✅ Merged daily CSV saved to: {output_path}")
         return output_path
+
 
     def fetch_ohlcv(self, window, start_time=None, end_time=None, sleep_time=0.5):
         print(f"Fetching {self.endpoint_category}/{self.metric} data for {self.currency} from {self.exchange} with window '{window}'...")
@@ -96,7 +97,7 @@ class CryptoQuantFetcher(DataFetcher):
         while remaining_limit > 0:
             params = {
                 "market": "spot",
-                "symbol": "btc_usd",
+                "symbol": "btc_usdt",
                 "window": window,
                 "exchange": self.exchange
             }
@@ -125,7 +126,11 @@ class CryptoQuantFetcher(DataFetcher):
                 for entry in data:
                     self.data.append({
                         "timestamp": entry["start_time"],
-                        "close": entry.get("close")  # Adjust as needed
+                        "open": entry.get("open"),
+                        "high": entry.get("high"),
+                        "low": entry.get("low"),
+                        "close": entry.get("close"),
+                        "volume": entry.get("volume")
                     })
 
                 print(f"✅ Retrieved {len(data)} records. Total so far: {len(self.data)}")

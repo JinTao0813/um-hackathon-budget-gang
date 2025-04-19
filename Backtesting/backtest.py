@@ -7,112 +7,84 @@ from matplotlib.colors import LinearSegmentedColormap
 
 
 class Backtest:
-    def __init__(self, strategy: Strategy, initial_cash, max_holding_period, trading_fees):
+    def __init__(self, strategy:Strategy , max_holding_period, trading_fees):
         self.strategy = strategy
         self.data = None
-        self.initial_cash = initial_cash
-        self.cash = initial_cash
-        self.position = 0
-        self.entry_price = 0
-        self.entry_index = 0
         self.signals = []
         self.equity_curve = []
         self.holding_period = 0
         self.trading_fees = trading_fees
-        self.portfolio_values = []
         self.trade_logs = []
         self.max_holding_period = max_holding_period
+        self.prev_position = 0
 
     def run(self):
         self.reset()
         self.data = self.strategy.generate_signals()
         self.signals = self.strategy.signals
-        equity = self.initial_cash
         for i in range(len(self.strategy.signals)):
             today_data = self.data.iloc[i]
             date = today_data.get('timestamp', None)
             price = today_data['close']
+            signal = self.strategy.signals[i] 
 
             trade = 0
             pnl = 0
             drawdown = 0
+            equity = 0
+            price_change = 0
+            position = 0
 
-            prev_position = self.position
+            if i>0:
+                if signal == 'buy':
+                    position = 1
+                elif signal == 'sell':
+                    position = -1
+                else:
+                    position = self.prev_position
+                
+                trade = abs(position - self.prev_position)
 
-            # Strategy decides what to do
-            self.cash, self.position, self.entry_price, self.entry_index, self.holding_period, action = self.strategy.execute_trade(
-                i, today_data, self.cash, self.position, self.entry_price, self.entry_index, self.holding_period, self.trading_fees, self.max_holding_period
-            )
+                prev_data = self.data.iloc[i-1]
 
-            if action in ['buy', 'sell']:
-                trade = 1
-
-            # Calculate PnL
-            if i > 0:
-                prev_data = self.data.iloc[i - 1]
-                price_change = (price - prev_data['close']) / prev_data['close']
-                prev_equity = self.equity_curve[-1] if self.equity_curve else self.initial_cash
-                pnl = price_change * prev_position
-                equity = prev_equity + pnl
-            else:
-                equity = self.initial_cash
+                price_change = (price / prev_data['close']) - 1
+                pnl = (price_change * self.prev_position) - (trade * self.trading_fees)
+                equity = sum (entry['pnl'] for entry in self.trade_logs) + pnl
+                self.equity_curve.append(equity)
+                drawdown = equity - max(self.equity_curve)
 
             self.equity_curve.append(equity)
-            self.portfolio_values.append(equity)
-            drawdown = equity - max(self.equity_curve)
 
             self.trade_logs.append({
                 'datetime': date,
-                'close': price,
-                'price_change': price_change if i > 0 else 0,
-                'position': self.position,
+                'close_price': price,
+                'price_change': price_change,
+                'signal': signal,
+                'position': position,
                 'trade': trade,
                 'pnl': pnl,
                 'equity': equity,
                 'drawdown': drawdown
             })
+            self.prev_position = position
 
 
     def get_performance_results(self):
-        final_price = self.data['close'].iloc[-1]
-        final_value = self.cash + self.position * final_price * (1 - self.trading_fees)
-        total_return = (final_value - self.initial_cash) / self.initial_cash * 100
-        total_trades = sum(self.trade_logs[i]['trade'] for i in range(len(self.trade_logs)))
-        wins = 0
-        losses = 0
-        wins = 0
-        buy_price = None
-
-        for log in self.trade_logs:
-            if log['trade'] == 1:  # Buy
-                buy_price = log['close']
-            elif log['trade'] == -1 and buy_price is not None:  # Sell
-                sell_price = log['close']
-                if sell_price > buy_price:
-                    wins += 1
-                else:
-                    losses += 1
-                buy_price = None  # reset for next round
-
-        win_rate = (wins / total_trades * 100) if total_trades > 0 else 0
-
-
-        pv = np.array(self.portfolio_values)
         trade_df = pd.DataFrame(self.trade_logs)
-        max_drawdown = trade_df['drawdown'].min()
 
-        returns = np.diff(pv) / pv[:-1]
-        sharpe_ratio = np.mean(returns) / np.std(returns) * np.sqrt(252) if np.std(returns) != 0 else 0
+
+        max_drawdown = trade_df['drawdown'].min()
+        sharpe_ratio = trade_df['pnl'].mean() / trade_df['pnl'].std() * np.sqrt(365) # if 1 day = 365, if 1 hour = 24*365
+        trade_per_interval = trade_df['trade'].sum() / len(trade_df)
 
         results = {
             'Start Trade Date': self.data['timestamp'].iloc[0],
             'End Trade Date': self.data['timestamp'].iloc[-1],
-            'Final Portfolio Value': final_value,
-            'Total Return (%)': total_return,
-            'Number of Trades': total_trades,  
-            'Win Rate (%)': round(win_rate, 2),
-            'Max Drawdown (%)': round(max_drawdown, 2),
-            'Sharpe Ratio': round(sharpe_ratio, 2),
+            'Number of Trades': sum(trade_df['trade']),
+            'Sharpe Ratio': round(sharpe_ratio, 6),
+            'Max Drawdown (%)': round(max_drawdown, 6),
+            'Trade per Interval': round(trade_per_interval, 6),
+            'Trading Fees': self.trading_fees,
         }
                 
         return results
@@ -121,6 +93,17 @@ class Backtest:
         df = pd.DataFrame(self.trade_logs)
         df.to_csv(filename, index=False)
         print(f"Trade logs saved to {filename}")
+
+    # def plot_graph(self):
+    #     plt.figure(figsize=(12, 6))
+    #     plt.plot(self.trade_logs['timestamp'], self.trade_logs['close'], label='Price', color='blue')
+    #     plt.plot(self.trade_logs['timestamp'], self.trade_logs[], label='Equity Curve', color='orange')
+
+    #     plt.title('Backtest Results')
+    #     plt.xlabel('Date')
+    #     plt.ylabel('Price / Equity')
+    #     plt.legend()
+    #     plt.show()
 
     def run_backtest_heatmap(self, bullish_range=None, bearish_range=None, metric='Final Portfolio Value'):
         # if bullish_range is None:
@@ -187,14 +170,10 @@ class Backtest:
         """
         Reset the backtest parameters.
         """
-        self.cash = self.initial_cash
         self.position = 0
-        self.entry_price = 0
-        self.entry_index = 0
         self.signals = []
         self.equity_curve = []
         self.holding_period = 0
-        self.portfolio_values = []
         self.trade_logs = []
     
     def set_predict_filepath(self, filepath1, filepath2):

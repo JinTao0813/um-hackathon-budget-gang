@@ -12,8 +12,9 @@ class LSTMModel():
     def __init__(self, training_data_filepath:str, seed):
         self.seed = seed
         self.seq_length = 60 # number of time steps to look back
-        self.feature_columns = ['open', 'high', 'low', 'close', 'volume']  # 👈 Multi-feature input
-        self.target_columns = ['close', 'high', 'low']  # 👈 What you want to predict
+        self.feature_columns = ['close', 'netflow_total', 'exchange_whale_ratio', 'funding_rates', 'sa_average_dormancy']  # 👈 Multi-feature input
+        # self.feature_columns = ['close', 'funding_rates']
+        self.target_columns = ['close']  # 👈 What you want to predict
         self.epochs = 10 # number of times the entire dataset will be passed through the model during training
         self.batch_size = 32 # how many samples the model processes before updating its weights during training.
         self.training_file_path = training_data_filepath
@@ -79,15 +80,25 @@ class LSTMModel():
     def train(self):
         # === Load and normalize training data ===
         df_train = self.load_data(self.training_file_path, self.feature_columns)
-        scaled_train, self.scaler = self.normalize_data(df_train)
+        df_train['netflow_total'] = np.log1p(df_train['sa_average_dormancy'])
+        df_train['exchange_whale_ratio'] = np.log1p(df_train['exchange_whale_ratio'])
+        df_train['funding_rates'] = np.log1p(df_train['funding_rates'])
+        df_train['sa_average_dormancy'] = np.log1p(df_train['sa_average_dormancy'])
+        print("Corellation: ",df_train.corr())
 
+        scaled_train, self.scaler = self.normalize_data(df_train)
         self.target_indices = [self.feature_columns.index(col) for col in self.target_columns]
         X_train, y_train = self.create_sequences(scaled_train, self.target_indices, self.seq_length)
+        print("Min:", df_train.min())
+        print("Max:", df_train.max())
+        print("After Scaling Sample:", scaled_train[:3])
 
         print(f"✅ Training set shape: X={X_train.shape}, y={y_train.shape}")
 
         # === Build and train model ===
         model = self.build_lstm_model(input_shape=(X_train.shape[1], X_train.shape[2]), output_dim=len(self.target_columns))
+        print("X train ", X_train)
+        print("y train ", y_train)
         model.fit(X_train, y_train, epochs=self.epochs, batch_size=self.batch_size)
 
         self.model = model

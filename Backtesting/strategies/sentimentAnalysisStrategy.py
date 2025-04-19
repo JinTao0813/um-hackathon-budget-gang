@@ -1,7 +1,5 @@
 from .base import Strategy
 import pandas as pd
-import numpy as np
-from datetime import datetime, timedelta
 
 class SentimentAnalysisStrategy(Strategy):
     '''

@@ -88,7 +88,7 @@ class HmmModel():
 
 
     def train_hmm_model(self, observations, n_states=3, n_iter=1000):
-        model = GaussianHMM(n_components=n_states, covariance_type="diag", n_iter=n_iter, verbose=True, random_state=self.seed)
+        model = GaussianHMM(n_components=n_states, covariance_type="full", n_iter=n_iter, verbose=True, random_state=self.seed)
         model.fit(observations)
         return model
 
@@ -107,10 +107,11 @@ class HmmModel():
         neutral = list(set(df['state'].unique()) - {bullish, bearish})[0]
         
         label_map = {
-            int(bullish): 'buy',
+            int(bullish): 'buy', 
             int(bearish): 'sell',
             int(neutral): 'hold'
         }
+        
         print(df['state'].unique())
         df['market_state'] = df['state'].map(label_map)
         return df, label_map

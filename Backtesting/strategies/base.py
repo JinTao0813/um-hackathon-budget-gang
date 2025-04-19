@@ -45,10 +45,3 @@ class Strategy(ABC):
         Generate trading signals based on the prediction data.
         """
         pass
-
-    @abstractmethod
-    def execute_trade(self, i, data_row, cash, position, entry_price, entry_index, holding_period, trading_fees, max_holding_period):
-        """
-        Must return: updated cash, position, entry_price, entry_index, holding_period, trade_signal ('buy', 'sell', 'hold')
-        """
-        raise NotImplementedError
