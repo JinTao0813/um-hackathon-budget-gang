@@ -18,8 +18,11 @@ class HmmModel():
         self.market_state_labels = {}
         self.stats = None
         self.initialize_metrics()
+        # self.features = ['log_return', 'exchange_whale_ratio', 'netflow_total']
+        # self.features = ['log_return', 'netflow_total', 'exchange_whale_ratio', 'funding_rates'] #Draw down = 95%
+        # self.features = ['log_return', 'netflow_total', 'exchange_whale_ratio'] #1 trade
+        self.features = ['log_return', 'funding_rates'] # 3 trades
         self.features = ['log_return', 'exchange_whale_ratio', 'netflow_total']
-        # self.features = ['log_return', 'netflow_total', 'exchange_whale_ratio', 'funding_rates', 'sa_average_dormancy']
 
     def preprocess_data(self, df):
         df['timestamp'] = pd.to_datetime(df['timestamp'])

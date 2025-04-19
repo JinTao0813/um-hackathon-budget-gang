@@ -12,7 +12,7 @@ class LSTMModel():
     def __init__(self, training_data_filepath:str, seed):
         self.seed = seed
         self.seq_length = 60 # number of time steps to look back
-        self.feature_columns = ['close', 'netflow_total', 'exchange_whale_ratio', 'funding_rates', 'sa_average_dormancy']  # 👈 Multi-feature input
+        self.feature_columns = ['close', 'netflow_total', 'exchange_whale_ratio', 'funding_rates', 'sa_average_dormancy']
         # self.feature_columns = ['close', 'funding_rates']
         self.target_columns = ['close']  # 👈 What you want to predict
         self.epochs = 10 # number of times the entire dataset will be passed through the model during training
@@ -80,11 +80,6 @@ class LSTMModel():
     def train(self):
         # === Load and normalize training data ===
         df_train = self.load_data(self.training_file_path, self.feature_columns)
-        df_train['netflow_total'] = np.log1p(df_train['sa_average_dormancy'])
-        df_train['exchange_whale_ratio'] = np.log1p(df_train['exchange_whale_ratio'])
-        df_train['funding_rates'] = np.log1p(df_train['funding_rates'])
-        df_train['sa_average_dormancy'] = np.log1p(df_train['sa_average_dormancy'])
-        print("Corellation: ",df_train.corr())
 
         scaled_train, self.scaler = self.normalize_data(df_train)
         self.target_indices = [self.feature_columns.index(col) for col in self.target_columns]

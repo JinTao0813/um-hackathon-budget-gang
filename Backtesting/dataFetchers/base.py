@@ -1,9 +1,9 @@
 import pandas as pd
 from abc import ABC, abstractmethod
 
-
+# Abstract class for data fetchers
 class DataFetcher(ABC):
-    def __init__(self, api_key, base_url, limit=1000):
+    def __init__(self, api_key, base_url, limit=1000): # default limit set to 1000
         self.api_key = api_key
         self.base_url = base_url
         self.limit = limit

@@ -66,7 +66,7 @@ class FlowSignalStrategy(Strategy):
             elif row['deepPredictor'] == 'sell' and row['marketRegime'] == 'sell':
                 return 'sell'
             else:
-                return row['marketRegime']
+                return row['marketRegime'] if row['marketRegime'] != 'hold' else row['deepPredictor']
 
         self.merged_predict_df['ensemble_prediction'] = self.merged_predict_df.apply(get_ensemble, axis=1)
 
@@ -75,13 +75,14 @@ class FlowSignalStrategy(Strategy):
         self.reset_signals()
         self.combine_signal()
 
+
         # Apply weighted vote
         # self.merged_predict_df['ensemble_prediction'] = self.merged_predict_df.apply(self.weighted_vote, axis=1)
         self.plot_signal(self.merged_predict_df, 'close')
         
         # self.merged_predict_df.to_csv(self.get_file_name(), index=False)
         # Convert predictions to signal list
-        # self.signals = self.merged_predict_df['ensemble_prediction'].tolist()
+        self.signals = self.merged_predict_df['ensemble_prediction'].tolist()
 
         ## Use the marketRegime column as the signal
         # self.signals = self.merged_predict_df['marketRegime'].tolist() 
@@ -89,7 +90,7 @@ class FlowSignalStrategy(Strategy):
         # forward result = -1.39 (bull = sell, bear = buy)
 
         # Use the deepPredictor column as the signal
-        self.signals = self.merged_predict_df['deepPredictor'].tolist()
+        # self.signals = self.merged_predict_df['deepPredictor'].tolist()
         # forward result = 1.18 (too few trade)
 
 
