@@ -4,6 +4,7 @@ from .marketRegimeStrategy import MarketRegimeStrategy
 from .deepPredictorStrategy import DeepPredictorStrategy
 import numpy as np
 import random
+import matplotlib.pyplot as plt
 
 class FlowSignalStrategy(Strategy):
     def __init__(self, hmm_dataset_filepath, lstm_dataset_filepath, seed=42):
@@ -51,7 +52,7 @@ class FlowSignalStrategy(Strategy):
         self.merged_predict_df.to_csv(self.get_file_name(), index=False)
 
 
-    def weighted_vote(self, df, weight_hmm=0.4, weight_lstm=0.6):
+    def weighted_vote(self, df, weight_hmm=0.8, weight_lstm=0.2):
         votes = {}
         votes[df['marketRegime']] = votes.get(df['marketRegime'], 0) + weight_hmm
         votes[df['deepPredictor']] = votes.get(df['deepPredictor'], 0) + weight_lstm
@@ -72,12 +73,13 @@ class FlowSignalStrategy(Strategy):
     def generate_signals(self):
         self.get_merged_predict_df(self.hmm_predict_dataset_filepath, self.lstm_predict_dataset_filepath)
         self.reset_signals()
-        # self.combine_signal()
+        self.combine_signal()
 
         # Apply weighted vote
         # self.merged_predict_df['ensemble_prediction'] = self.merged_predict_df.apply(self.weighted_vote, axis=1)
+        self.plot_signal(self.merged_predict_df, 'close')
         
-        self.merged_predict_df.to_csv(self.get_file_name(), index=False)
+        # self.merged_predict_df.to_csv(self.get_file_name(), index=False)
         # Convert predictions to signal list
         # self.signals = self.merged_predict_df['ensemble_prediction'].tolist()
 
@@ -109,5 +111,30 @@ class FlowSignalStrategy(Strategy):
         file_name = f"processed_data_{self.file_idx}.csv"
         self.file_idx += 1
         return file_name
+
+    def plot_signal(self, df, price_column):
+        # Ensure market_state is a category for consistent coloring
+        df[''] = df['ensemble_prediction'].astype('category')
+
+        # Create color map
+        color_map = {'buy': 'green', 'sell': 'red', 'hold': 'orange'}
+        colors = df['ensemble_prediction'].map(color_map)
+
+        # Plot
+        plt.figure(figsize=(14, 6))
+        plt.scatter(df['timestamp'], df[price_column], c=colors, label='Final Trade Decision', s=10)
+        plt.plot(df['timestamp'], df[price_column], color='gray', alpha=0.3, label='Price Trend')
+        
+        # Legend handling
+        import matplotlib.patches as mpatches
+        legend_handles = [mpatches.Patch(color=color_map[state], label=state.capitalize()) for state in color_map]
+        plt.legend(handles=legend_handles)
+
+        plt.title('Final Trade Decision Over Time')
+        plt.xlabel('Time')
+        plt.ylabel(price_column.capitalize())
+        plt.grid(True)
+        plt.tight_layout()
+        plt.show()
 
     

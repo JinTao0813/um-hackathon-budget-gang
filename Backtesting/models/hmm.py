@@ -5,6 +5,7 @@ import os
 import joblib
 from ..utils.indicator import IndicatorCalculator
 from ..utils.featureNormalizer import ExtrernalNormalizer, SelfNormalizer
+import matplotlib.pyplot as plt
 
 
 class HmmModel():
@@ -17,7 +18,8 @@ class HmmModel():
         self.market_state_labels = {}
         self.stats = None
         self.initialize_metrics()
-        self.features = ['log_return', 'netflow_total', 'exchange_whale_ratio', 'funding_rates', 'sa_average_dormancy']
+        self.features = ['log_return', 'exchange_whale_ratio', 'netflow_total']
+        # self.features = ['log_return', 'netflow_total', 'exchange_whale_ratio', 'funding_rates', 'sa_average_dormancy']
 
     def preprocess_data(self, df):
         df['timestamp'] = pd.to_datetime(df['timestamp'])
@@ -111,9 +113,10 @@ class HmmModel():
             int(bearish): 'sell',
             int(neutral): 'hold'
         }
-        
+
         print(df['state'].unique())
         df['market_state'] = df['state'].map(label_map)
+        self.plot_market_states(df,'close')  
         return df, label_map
 
     def save_model(self):
@@ -171,4 +174,28 @@ class HmmModel():
             for idx, prob in enumerate(probs)
         }
     
-    
+    def plot_market_states(self, df, price_column):
+        # Ensure market_state is a category for consistent coloring
+        df['market_state'] = df['market_state'].astype('category')
+
+        # Create color map
+        color_map = {'buy': 'green', 'sell': 'red', 'hold': 'orange'}
+        colors = df['market_state'].map(color_map)
+
+        # Plot
+        plt.figure(figsize=(14, 6))
+        plt.scatter(df['timestamp'], df[price_column], c=colors, label='Market State', s=10)
+        plt.plot(df['timestamp'], df[price_column], color='gray', alpha=0.3, label='Price Trend')
+        
+        # Legend handling
+        import matplotlib.patches as mpatches
+        legend_handles = [mpatches.Patch(color=color_map[state], label=state.capitalize()) for state in color_map]
+        plt.legend(handles=legend_handles)
+
+        plt.title('Market States Over Time')
+        plt.xlabel('Time')
+        plt.ylabel(price_column.capitalize())
+        plt.grid(True)
+        plt.tight_layout()
+        plt.show()
+

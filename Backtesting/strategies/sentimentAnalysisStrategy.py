@@ -36,7 +36,7 @@ class SentimentAnalysisStrategy(Strategy):
         combine_price_action : bool
             Whether to combine price action with sentiment
         """
-        self.sentiment_threshold = sentiment_threshold
+        self.s = sentiment_threshold
         self.momentum_threshold = momentum_threshold
         self.ma_period = ma_period
         self.volume_threshold = volume_threshold
