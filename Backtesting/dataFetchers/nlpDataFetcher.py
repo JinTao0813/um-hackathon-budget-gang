@@ -4,6 +4,7 @@ import os
 import glob
 from datetime import datetime
 
+# Fetcher for NLP sentiment data
 class NLPSentimentFetcher(DataFetcher):
     """
     Fetcher for NLP sentiment data exported from nlp_app.py.
@@ -20,10 +21,10 @@ class NLPSentimentFetcher(DataFetcher):
         sentiment_dir : str, optional
             Directory containing sentiment CSV files. If provided, the most recent file will be used
         """
-        self.sentiment_file_path = sentiment_file_path
-        self.sentiment_dir = sentiment_dir
-        self.data = []
-        self.sentiment_df = None
+        self.sentiment_file_path = sentiment_file_path # Specific file path
+        self.sentiment_dir = sentiment_dir # Directory to search for sentiment files
+        self.data = [] # List to store sentiment data
+        self.sentiment_df = None # DataFrame to store loaded sentiment data
         
     def fetch(self):
         """
@@ -57,12 +58,12 @@ class NLPSentimentFetcher(DataFetcher):
         Determine which sentiment file to load based on initialization parameters.
         """
         # If a specific file is provided, use it
-        if self.sentiment_file_path and os.path.exists(self.sentiment_file_path):
+        if self.sentiment_file_path and os.path.exists(self.sentiment_file_path): 
             return self.sentiment_file_path
             
         # If a directory is provided, find the most recent sentiment file
         if self.sentiment_dir and os.path.isdir(self.sentiment_dir):
-            sentiment_files = glob.glob(os.path.join(self.sentiment_dir, "sentiment_data_*.csv"))
+            sentiment_files = glob.glob(os.path.join(self.sentiment_dir, "sentiment_data_*.csv")) # Search for sentiment files in the directory
             if sentiment_files:
                 # Sort by modification time, most recent first
                 most_recent_file = max(sentiment_files, key=os.path.getmtime)
@@ -72,7 +73,7 @@ class NLPSentimentFetcher(DataFetcher):
         root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         sentiment_files = glob.glob(os.path.join(root_dir, "sentiment_data_*.csv"))
         if sentiment_files:
-            most_recent_file = max(sentiment_files, key=os.path.getmtime)
+            most_recent_file = max(sentiment_files, key=os.path.getmtime) # Sort by modification time, most recent first
             return most_recent_file
             
         return None
@@ -99,10 +100,10 @@ class NLPSentimentFetcher(DataFetcher):
         dict or None
             Dictionary with sentiment features for the specified date, or None if not found
         """
-        if self.sentiment_df is None:
+        if self.sentiment_df is None: ## If sentiment data is not loaded, fetch it
             self.fetch()
             
-        if self.sentiment_df is None:
+        if self.sentiment_df is None: # If still not loaded, return None
             return None
             
         # Convert target_date to pandas datetime if it's a string
@@ -119,7 +120,7 @@ class NLPSentimentFetcher(DataFetcher):
         # If no exact match, find the closest previous date
         previous_dates = self.sentiment_df[self.sentiment_df['Date'] < target_date]
         if not previous_dates.empty:
-            closest_row = previous_dates.iloc[previous_dates['Date'].argmax()]
+            closest_row = previous_dates.iloc[previous_dates['Date'].argmax()] # Get the most recent date before target_date
             return closest_row.to_dict()
             
         return None

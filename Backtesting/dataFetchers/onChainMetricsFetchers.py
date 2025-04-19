@@ -5,14 +5,14 @@ import time
 from datetime import datetime
 import pandas as pd
 
-
+# Fetcher for CryptoQuant data
 class CryptoQuantFetcher(DataFetcher):
     def __init__(self, api_key, base_url, currency, endpoint_category, metric, exchange, limit= any):
         super().__init__(api_key, base_url, limit)
         self.currency = currency.lower()
-        self.endpoint_category = endpoint_category.lower()
+        self.endpoint_category = endpoint_category.lower() # e.g., "exchange" or "onchain"
         self.metric = metric.lower()
-        self.exchange = exchange
+        self.exchange = exchange # e.g., "binance"
 
     def fetch(self):
         print("fetching data...")
@@ -35,7 +35,7 @@ class CryptoQuantFetcher(DataFetcher):
             df = pd.read_csv(full_path)
 
             if "timestamp" not in df.columns:
-                print(f"⚠️ Skipping {full_path} - No 'timestamp' column found")
+                print(f"⚠️ Skipping {full_path} - No 'timestamp' column found") 
                 continue
 
             df["timestamp"] = pd.to_datetime(df["timestamp"])
@@ -49,14 +49,14 @@ class CryptoQuantFetcher(DataFetcher):
             freq = df.index.to_series().diff().mode()[0]
             is_hourly = freq <= pd.Timedelta(hours=1.5)
 
-            if is_hourly:
+            if is_hourly: # Resample to daily
                 df = df.resample("1D").ffill()
 
             all_data.append(df)
 
             # Automatically infer min/max timestamp if not specified
             if start_ts is None or pd.to_datetime(start_ts) > df.index.min():
-                start_ts = df.index.min()
+                start_ts = df.index.min() # Set to the earliest timestamp in the data
             if end_ts is None or pd.to_datetime(end_ts) < df.index.max():
                 end_ts = df.index.max()
 
@@ -65,7 +65,7 @@ class CryptoQuantFetcher(DataFetcher):
             return
 
         # Create fixed daily index
-        time_index = pd.date_range(start=start_ts, end=end_ts, freq="1D")
+        time_index = pd.date_range(start=start_ts, end=end_ts, freq="1D") # Daily frequency
         merged_df = pd.DataFrame(index=time_index)
 
         for df in all_data:
@@ -87,29 +87,29 @@ class CryptoQuantFetcher(DataFetcher):
         return output_path
 
 
-    def fetch_ohlcv(self, window, start_time=None, end_time=None, sleep_time=0.5):
+    def fetch_ohlcv(self, window, start_time=None, end_time=None, sleep_time=0.5): # Fetch OHLCV data from CryptoQuant
         print(f"Fetching {self.endpoint_category}/{self.metric} data for {self.currency} from {self.exchange} with window '{window}'...")
 
-        endpoint = f"{self.currency}/{self.endpoint_category}/{self.metric}"
-        fetching_by_range = start_time is not None and end_time is not None
+        endpoint = f"{self.currency}/{self.endpoint_category}/{self.metric}" # e.g., "exchange/ohlcv"
+        fetching_by_range = start_time is not None and end_time is not None # Check if both start_time and end_time are provided
         remaining_limit = self.limit if not fetching_by_range else float('inf')  # Don't apply hard limit when using a range
 
         while remaining_limit > 0:
             params = {
-                "market": "spot",
-                "symbol": "btc_usdt",
-                "window": window,
-                "exchange": self.exchange
+                "market": "spot", # e.g., "spot" or "futures"
+                "symbol": "btc_usdt", # e.g., "btc_usdt"
+                "window": window, # e.g., "1h"
+                "exchange": self.exchange # e.g., "binance"
             }
 
-            if fetching_by_range:
+            if fetching_by_range: # If both start_time and end_time are provided
                 params["start_time"] = start_time
                 params["end_time"] = end_time
                 print(f"Using range: {datetime.utcfromtimestamp(start_time / 1000)} to {datetime.utcfromtimestamp(end_time / 1000)}")
-            elif start_time:
+            elif start_time: # If only start_time is provided
                 params["start_time"] = start_time
                 print(f"Using start_time + limit={params['limit']} from {datetime.utcfromtimestamp(start_time / 1000)}")
-            elif end_time:
+            elif end_time: # If only end_time is provided
                 params["end_time"] = end_time
                 print(f"Using end_time + limit={params['limit']} to {datetime.utcfromtimestamp(end_time / 1000)}")
             else:
@@ -138,7 +138,7 @@ class CryptoQuantFetcher(DataFetcher):
                 last_timestamp = data[-1]["start_time"]
 
                 # Stop if we've passed the end_time
-                if fetching_by_range and (last_timestamp >= end_time):
+                if fetching_by_range and (last_timestamp >= end_time): # If using a range and we've passed the end_time
                     break
 
                 # Move forward
@@ -153,6 +153,7 @@ class CryptoQuantFetcher(DataFetcher):
 
         return self.save_to_csv(self.exchange, self.metric, window, start_time, end_time)
 
+    # Fetch netflow data from CryptoQuant
     def fetch_netflow(self, window, start_time=None, end_time=None, sleep_time=0.5):
         print(f"Fetching {self.endpoint_category}/{self.metric} data for {self.currency} from {self.exchange} with window '{window}'...")
 
@@ -162,18 +163,18 @@ class CryptoQuantFetcher(DataFetcher):
 
         while remaining_limit > 0:
             params = {
-                "window": window,
-                "exchange": self.exchange
+                "window": window, # e.g., "1h"
+                "exchange": self.exchange # e.g., "binance"
             }
 
-            if fetching_by_range:
-                params["start_time"] = start_time
-                params["end_time"] = end_time
+            if fetching_by_range: # If both start_time and end_time are provided
+                params["start_time"] = start_time # e.g., 1690000000000
+                params["end_time"] = end_time 
                 print(f"Using range: {datetime.utcfromtimestamp(start_time / 1000)} to {datetime.utcfromtimestamp(end_time / 1000)}")
-            elif start_time:
-                params["start_time"] = start_time
+            elif start_time: # If only start_time is provided
+                params["start_time"] = start_time 
                 print(f"Using start_time + limit={params['limit']} from {datetime.utcfromtimestamp(start_time / 1000)}")
-            elif end_time:
+            elif end_time: # If only end_time is provided
                 params["end_time"] = end_time
                 print(f"Using end_time + limit={params['limit']} to {datetime.utcfromtimestamp(end_time / 1000)}")
             else:
@@ -213,7 +214,7 @@ class CryptoQuantFetcher(DataFetcher):
 
         return self.save_to_csv(self.exchange, self.metric, window, start_time, end_time)
 
-    
+    # Fetch exchange whale ratio data from CryptoQuant
     def fetch_exchange_whale_ratio(self, window, start_time=None, end_time=None, sleep_time=0.5):
         print(f"Fetching {self.endpoint_category}/{self.metric} data for {self.currency} from {self.exchange} with window '{window}'...")
 
@@ -274,6 +275,7 @@ class CryptoQuantFetcher(DataFetcher):
 
         return self.save_to_csv(self.exchange, self.metric, window, start_time, end_time)
     
+    # Fetch funding rates data from CryptoQuant
     def fetch_funding_rates(self, window, start_time=None, end_time=None, sleep_time=0.5):
         print(f"Fetching {self.endpoint_category}/{self.metric} data for {self.currency} from {self.exchange} with window '{window}'...")
 
@@ -283,8 +285,8 @@ class CryptoQuantFetcher(DataFetcher):
 
         while remaining_limit > 0:
             params = {
-                "window": window,
-                "exchange": self.exchange
+                "window": window, # e.g., "1h"
+                "exchange": self.exchange # e.g., "binance"
             }
 
             if fetching_by_range:
@@ -343,6 +345,7 @@ class CryptoQuantFetcher(DataFetcher):
         print(f"💾 Saved to {csv_path} with {len(df)} rows.")
         print(df.tail())
 
+# Fetcher for CryptoQuant data without exchange (meaning parameters are not exchange-specific)
 class CryptoQuantFetcherWithoutExchange(DataFetcher):
     def __init__(self, api_key, base_url, currency, endpoint_category, metric, limit=1000):
         super().__init__(api_key, base_url, limit)
@@ -422,6 +425,7 @@ class CryptoQuantFetcherWithoutExchange(DataFetcher):
         print(f"💾 Saved to {csv_path} with {len(df)} rows.")
         print(df.tail())
 
+# Fetcher for Glassnode data
 class GlassnodeFetcher(DataFetcher):
     def __init__(
         self,
@@ -453,11 +457,11 @@ class GlassnodeFetcher(DataFetcher):
     def fetch_new_address(self, interval, start_time=None, end_time=None, sleep_time=0.5):
         print(f"Fetching {self.endpoint} data for {self.asset} at interval '{interval}'...")
 
-        remaining_limit = self.limit
-        while remaining_limit > 0:
+        remaining_limit = self.limit 
+        while remaining_limit > 0: # Check if we have remaining limit
             params = {
-                "a": self.asset,
-                "i": interval,
+                "a": self.asset, # e.g., "BTC"
+                "i": interval, # e.g., "24h"
                 "start_timestamp": start_time,
                 "end_timestamp": end_time,
                 "f": self.format
@@ -471,7 +475,7 @@ class GlassnodeFetcher(DataFetcher):
             headers = {"X-API-Key": f"{self.api_key}"}
             response = requests.get(url, headers=headers, params=params)
 
-            if response.status_code == 200:
+            if response.status_code == 200: # Check if the response is successful
                 try:
                     data = response.json()
                     if isinstance(data, dict) and "data" in data:
@@ -508,7 +512,7 @@ class GlassnodeFetcher(DataFetcher):
 
         return self.save_to_csv(self.endpoint, interval, start_time, end_time)
 
-    def fetch_active_address(self, interval, start_time=None, end_time=None, sleep_time=0.5):
+    def fetch_active_address(self, interval, start_time=None, end_time=None, sleep_time=0.5): # Fetch active address data
         print(f"Fetching {self.endpoint} data for {self.asset} at interval '{interval}'...")
 
         remaining_limit = self.limit
@@ -538,7 +542,7 @@ class GlassnodeFetcher(DataFetcher):
                     print("❌ Failed to decode JSON.")
                     break
 
-                if not isinstance(data, list):
+                if not isinstance(data, list): # Check if the response is a list
                     print(f"Unexpected response format: {data}")
                     break
 
@@ -546,15 +550,15 @@ class GlassnodeFetcher(DataFetcher):
                     print("No more data returned.")
                     break
 
-                for entry in data:
-                    self.data.append({
+                for entry in data: # Iterate through the entries
+                    self.data.append({ # Append each entry to the data list
                         "timestamp": entry.get("t") or entry.get("start_time"),  # support both formats
                         "active_address": float(entry["v"]) if isinstance(entry["v"], str) else entry["v"]
                     })
 
                 print(f"✅ Retrieved {len(data)} records. Total so far: {len(self.data)}")
 
-                remaining_limit -= len(data)
+                remaining_limit -= len(data) # Update remaining limit
                 last_timestamp = entry.get("t") or entry.get("start_time")
 
                 # Advance to next batch

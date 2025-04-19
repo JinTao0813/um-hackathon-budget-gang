@@ -14,7 +14,7 @@ class DataFetcher(ABC):
     def fetch(self, *args, **kwargs):
         pass
 
-    def to_dataframe(self):
+    def to_dataframe(self): # Convert the fetched data to a pandas DataFrame
         df = pd.DataFrame(self.data)
         if 'timestamp' in df.columns:
             df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms", errors="coerce")
@@ -22,5 +22,5 @@ class DataFetcher(ABC):
         return df
 
     @abstractmethod
-    def save_to_csv(self, *args, **kwargs):
+    def save_to_csv(self, *args, **kwargs): # Save the fetched data to a CSV file
         pass
