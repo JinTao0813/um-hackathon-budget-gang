@@ -16,7 +16,7 @@ import traceback
 try:
     import numpy as np
     NUMPY_AVAILABLE = True
-except ImportError:
+except ImportError: # Numpy not available
     print("WARNING: NumPy is not available in models module. Installing it now...")
     import subprocess
     try:
@@ -34,7 +34,7 @@ except ImportError:
             def array(self, data):
                 return data
                 
-        class MockRandom:
+        class MockRandom: # Mock class to simulate numpy random functions
             def uniform(self, low, high, size=None):
                 if size is None:
                     return (high - low) * 0.5 + low

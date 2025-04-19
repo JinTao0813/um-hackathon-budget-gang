@@ -99,9 +99,9 @@ class Backtest:
 
     def run_backtest_heatmap(self, bullish_range=None, bearish_range=None, metric='Final Portfolio Value'): # Run backtest heatmap
         if bullish_range is None:
-            bullish_range = np.linspace(0.4, 0.5, 2)
+            bullish_range = np.linspace(0.2, 0.9, 8)
         if bearish_range is None:
-            bearish_range = np.linspace(0.3, 0.4, 2)
+            bearish_range = np.linspace(0.2, 0.9, 8)
 
         print("bullish range: ", bullish_range)
         print("bearish range: ", bearish_range)

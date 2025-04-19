@@ -119,7 +119,7 @@ class LSTMModel():
 
         dummy = np.zeros((predictions.shape[0], len(self.feature_columns))) # create a dummy array to hold the predictions
         dummy[:, self.target_indices] = predictions
-        predicted_prices = self.scaler.inverse_transform(dummy)[:, self.target_indices]
+        predicted_prices = self.scaler.inverse_transform(dummy)[:, self.target_indices] # inverse transform the predictions
 
         dummy[:, self.target_indices] = y_test
         actual_prices = self.scaler.inverse_transform(dummy)[:, self.target_indices]
